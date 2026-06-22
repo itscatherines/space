@@ -546,20 +546,26 @@ function buildPlane(art){
 
   if(art.image){
     const imgUrl=art.image.startsWith("http")?art.image:BASE_URL+art.image;
-    const tex=new BABYLON.Texture(
-      imgUrl, scene,
-      true,  // noMipmap
-      false, // invertY
-      BABYLON.Texture.NEAREST_SAMPLINGMODE
-    );
-    // onLoadObservable: erst wenn Textur geladen → Material setzen
-    tex.onLoadObservable.addOnce(()=>{
-      pmat.emissiveTexture=tex;
-      pmat.emissiveColor=new BABYLON.Color3(1,1,1);
-    });
-    tex.onErrorObservable.addOnce(()=>{
-      console.warn("Bild nicht geladen (CORS?):",imgUrl);
-    });
+    // Grau bis Textur geladen, dann Bild anzeigen
+    pmat.emissiveColor=new BABYLON.Color3(0.3,0.3,0.32);
+    // diffuseTexture MIT Lighting disabled = Bild als emissive
+    // In Babylon 6: emissiveTexture braucht emissiveColor=(1,1,1) NACH dem Laden
+    const img=new Image();
+    img.crossOrigin="anonymous";
+    img.onload=()=>{
+      const tex=new BABYLON.Texture(imgUrl,scene,true,false,BABYLON.Texture.NEAREST_SAMPLINGMODE);
+      tex.onLoadObservable.addOnce(()=>{
+        pmat.emissiveTexture=tex;
+        pmat.emissiveColor=new BABYLON.Color3(1,1,1);
+      });
+      // Falls Observable schon gefeuert (gecacht):
+      if(tex.isReady()){
+        pmat.emissiveTexture=tex;
+        pmat.emissiveColor=new BABYLON.Color3(1,1,1);
+      }
+    };
+    img.onerror=()=>console.warn("Bild nicht erreichbar:",imgUrl);
+    img.src=imgUrl;
   }
 
   mesh.material=pmat;
