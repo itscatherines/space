@@ -528,11 +528,28 @@ BABYLON.SceneLoader.ImportMesh("",BASE_URL,"spaceship01.obj",scene,function(mesh
 });
 
 // ── 9 FOTO-PLANES ──
-// Ansatz: diffuseTexture + scene.ambientColor + mat.ambientColor
-// Das ist der einzig zuverlässige Weg in Babylon 6 für beleuchtungsunabh. Texturen
-scene.ambientColor = new BABYLON.Color3(1,1,1);
-
 const artMeshes={};
+
+function loadImageAsTexture(url, scene, onReady){
+  // Lädt Bild via HTML Image (kein XHR), zeichnet auf Power-of-2 Canvas,
+  // erstellt DynamicTexture → funktioniert auf GitHub Pages ohne CORS-Probleme
+  const img=new Image();
+  img.crossOrigin="anonymous";
+  img.onload=function(){
+    // Nächste Power-of-2 Größe berechnen
+    function nextPow2(n){ let p=1; while(p<n) p*=2; return p; }
+    const w=nextPow2(Math.min(img.naturalWidth||512, 2048));
+    const h=nextPow2(Math.min(img.naturalHeight||512, 2048));
+    const dt=new BABYLON.DynamicTexture("dt_"+Date.now(),{width:w,height:h},scene,true);
+    const ctx=dt.getContext();
+    ctx.drawImage(img,0,0,w,h);
+    dt.update(false);
+    onReady(dt);
+  };
+  img.onerror=function(){ console.warn("Bild nicht erreichbar:",url); onReady(null); };
+  img.src=url;
+}
+
 function buildPlane(art){
   const pos=new BABYLON.Vector3(...art.pos);
 
@@ -543,10 +560,10 @@ function buildPlane(art){
   frame.isPickable=false;
   const fmat=new BABYLON.StandardMaterial(art.id+"_fmat",scene);
   fmat.disableLighting=true;
-  fmat.emissiveColor=new BABYLON.Color3(0.9,0.9,0.9);
+  fmat.emissiveColor=new BABYLON.Color3(0.88,0.88,0.88);
   frame.material=fmat;
 
-  // Bild-Plane: DOUBLESIDE, immer zur Kamera
+  // Bild-Plane
   const mesh=BABYLON.MeshBuilder.CreatePlane(art.id,{
     width:4.1, height:3.0,
     sideOrientation:BABYLON.Mesh.DOUBLESIDE
@@ -555,40 +572,23 @@ function buildPlane(art){
   mesh.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
 
   const pmat=new BABYLON.StandardMaterial(art.id+"_m",scene);
-  pmat.backFaceCulling=false;
-  // disableLighting=true: kein Lichteinfluss, Textur in Originalfarben
   pmat.disableLighting=true;
+  pmat.backFaceCulling=false;
+  pmat.diffuseColor=new BABYLON.Color3(0,0,0);
+  pmat.specularColor=new BABYLON.Color3(0,0,0);
+  pmat.emissiveColor=new BABYLON.Color3(0.3,0.3,0.32);
+  mesh.material=pmat;
 
   if(art.image){
     const imgUrl=art.image.startsWith("http")?art.image:BASE_URL+art.image;
-    pmat.diffuseColor=new BABYLON.Color3(0,0,0);
-    pmat.specularColor=new BABYLON.Color3(0,0,0);
-    pmat.emissiveColor=new BABYLON.Color3(0.3,0.3,0.32); // grau bis Bild geladen
-    // HTML Image → DynamicTexture: umgeht Babylons XHR, kein CORS-Problem
-    const htmlImg=new Image();
-    htmlImg.crossOrigin="anonymous";
-    htmlImg.onload=function(){
-      const w=htmlImg.naturalWidth||1024;
-      const h=htmlImg.naturalHeight||768;
-      const dt=new BABYLON.DynamicTexture(art.id+"_dt",{width:w,height:h},scene,false);
-      const ctx=dt.getContext();
-      // Canvas-Y-Achse ist invertiert — flip vertikal
-      ctx.save();
-      ctx.scale(1,-1);
-      ctx.drawImage(htmlImg,0,-h,w,h);
-      ctx.restore();
-      dt.update(false);
-      pmat.emissiveTexture=dt;
-      pmat.emissiveColor=new BABYLON.Color3(1,1,1);
-    };
-    htmlImg.onerror=function(e){ console.warn("Bild nicht geladen:",imgUrl,e); };
-    htmlImg.src=imgUrl;
-  } else {
-    pmat.diffuseColor=new BABYLON.Color3(0,0,0);
-    pmat.emissiveColor=new BABYLON.Color3(0.3,0.3,0.32);
+    loadImageAsTexture(imgUrl, scene, function(dt){
+      if(dt){
+        pmat.emissiveTexture=dt;
+        pmat.emissiveColor=new BABYLON.Color3(1,1,1);
+      }
+    });
   }
 
-  mesh.material=pmat;
   mesh.metadata={type:"artwork",data:art,frame};
   mesh.isPickable=true;
   mesh.actionManager=new BABYLON.ActionManager(scene);
