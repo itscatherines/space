@@ -306,54 +306,33 @@ const artMeshes={};
 function buildPlane(art){
   const pos=new BABYLON.Vector3(...art.pos);
 
-  // Rahmen: weiße Plane, etwas größer
-  const bg=BABYLON.MeshBuilder.CreatePlane(art.id+"_bg",{
-    width:4.5,height:3.3,sideOrientation:BABYLON.Mesh.DOUBLESIDE
-  },scene);
-  bg.position.copyFrom(pos);
-  bg.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
-  bg.isPickable=false;
-  // renderingGroupId=0 = normal im Szenenraum, hinter/vor anderen Objekten je nach Z
-  bg.renderingGroupId=0;
-  const bgmat=new BABYLON.StandardMaterial(art.id+"_bgm",scene);
-  bgmat.disableLighting=true;
-  bgmat.emissiveColor=new BABYLON.Color3(0.85,0.85,0.85);
-  bgmat.backFaceCulling=false;
-  bg.material=bgmat;
-
-  // Bildplane: identische Position wie bg, aber leicht davor gepusht via polygonOffset
   const mesh=BABYLON.MeshBuilder.CreatePlane(art.id,{
-    width:4.1,height:2.9,sideOrientation:BABYLON.Mesh.DOUBLESIDE
+    width:4.5,height:3.4,sideOrientation:BABYLON.Mesh.DOUBLESIDE
   },scene);
   mesh.position.copyFrom(pos);
   mesh.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
-  mesh.renderingGroupId=0;
 
   const pmat=new BABYLON.StandardMaterial(art.id+"_m",scene);
   pmat.backFaceCulling=false;
   pmat.ambientColor=new BABYLON.Color3(1,1,1);
   pmat.diffuseColor=new BABYLON.Color3(0,0,0);
-  pmat.specularColor=new BABYLON.Color3(1,0,0);
+  pmat.specularColor=new BABYLON.Color3(0,0,0);
   pmat.emissiveColor=new BABYLON.Color3(0,0,0);
-  // polygonOffset: verschiebt Bildplane im Depth-Buffer leicht nach vorne
-  // → verhindert Z-fighting mit dem Rahmen, ohne renderingGroup zu ändern
-  pmat.zOffset=-2;
   mesh.material=pmat;
 
   if(art.image){
     const imgUrl=BASE_URL+art.image;
     const offscreen=document.createElement('canvas');
     offscreen.width=512; offscreen.height=512;
-    const ctx2d=offscreen.getContext('2d');
+    const ctx=offscreen.getContext('2d');
     const img=new Image();
     img.crossOrigin="anonymous";
     img.onload=function(){
-      ctx2d.drawImage(img,0,0,512,512);
+      ctx.drawImage(img,0,0,512,512);
       const dt=new BABYLON.DynamicTexture(art.id+"_tex",offscreen,scene,false);
       dt.update(false);
       pmat.ambientTexture=dt;
     };
-    img.onerror=function(){ console.warn("Fehler:", imgUrl); };
     img.src=imgUrl;
   }
 
