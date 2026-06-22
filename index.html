@@ -367,37 +367,23 @@ earth.position.copyFrom(EARTH_POS); earth.isPickable=false;
 
 const earthMat=new BABYLON.StandardMaterial("earthMat",scene);
 
-// Diffuse: NASA Blue Marble (Tagseite)
+// Diffuse: NASA Blue Marble
 earthMat.diffuseTexture=new BABYLON.Texture(
   "https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg",
   scene,false,false,BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
   null,()=>{ earthMat.diffuseColor=new BABYLON.Color3(0.07,0.2,0.5); }
 );
-
-// Bump Map: Höhenrelief (Gebirge heben sich ab)
-// NASA SRTM Topography — via unpkg
+// Bump Map: Gebirgsrelief
 earthMat.bumpTexture=new BABYLON.Texture(
   "https://unpkg.com/three-globe/example/img/earth-topology.png",
   scene,false,false,BABYLON.Texture.TRILINEAR_SAMPLINGMODE
 );
-earthMat.bumpTexture.level=1.8; // Relief-Stärke
-
-// Specular: Ozeane glänzen, Land matt
-// Weiße Pixel = glänzend (Meer), schwarze = matt (Land)
-earthMat.specularTexture=new BABYLON.Texture(
-  "https://cdn.jsdelivr.net/npm/three-globe@2.27.2/example/img/earth-water.png",
-  scene,false,false,BABYLON.Texture.TRILINEAR_SAMPLINGMODE
-);
-earthMat.specularColor=new BABYLON.Color3(0.5,0.65,0.9); // Ozean-Spiegelung blaulich
-earthMat.specularPower=35;
-
-// Nachtseite: Stadtlichter als Emissive (sichtbar auf der Schattenseite)
-earthMat.emissiveTexture=new BABYLON.Texture(
-  "https://unpkg.com/three-globe/example/img/earth-night.jpg",
-  scene,false,false,BABYLON.Texture.TRILINEAR_SAMPLINGMODE
-);
-// Nachtlichter nur leicht — wirken auf Schattenseite durch Babylons Beleuchtung
-earthMat.emissiveColor=new BABYLON.Color3(0.07,0.07,0.06);
+earthMat.bumpTexture.level=1.2;
+// Specular: Ozeane glänzen
+earthMat.specularColor=new BABYLON.Color3(0.3,0.4,0.6);
+earthMat.specularPower=28;
+// KEIN emissiveTexture — das war die Ursache für die pinken Farben
+earthMat.emissiveColor=new BABYLON.Color3(0,0,0);
 earth.material=earthMat;
 
 // Schicht 2: Wolken (separate rotierende Sphere, etwas größer)
@@ -505,14 +491,31 @@ SOLAR.slice(1).forEach(([name,distAU,scaledDist,diam,r,g,b,hasRing,ringD])=>{
   lm.diffuseTexture=ltex; lm.emissiveColor=new BABYLON.Color3(1,1,1); lm.disableLighting=true; lm.hasAlpha=true; lbl.material=lm;
 });
 
-// ── RAUMSCHIFF ──
+// ── RAUMSCHIFF mit Innenbeleuchtung ──
+// Warmes Licht innen im Schiff (simuliert beleuchtetes Cockpit/Modul)
+const shipInteriorLight=new BABYLON.PointLight("shipLight",new BABYLON.Vector3(0,0.5,2),scene);
+shipInteriorLight.intensity=4.5;
+shipInteriorLight.diffuse=new BABYLON.Color3(1,0.92,0.75); // warmes Weißlicht
+shipInteriorLight.specular=new BABYLON.Color3(0.8,0.7,0.5);
+shipInteriorLight.range=18; // Reichweite: beleuchtet Schiff + nahe Objekte
+
+// Zweites kühleres Licht von vorne (Navigationslicht)
+const shipFrontLight=new BABYLON.SpotLight(
+  "shipFront",new BABYLON.Vector3(0,1,-8),new BABYLON.Vector3(0,0,1),Math.PI/4,2,scene
+);
+shipFrontLight.intensity=3.0;
+shipFrontLight.diffuse=new BABYLON.Color3(0.7,0.85,1.0); // kühles Blauweiss
+shipFrontLight.range=30;
+
 BABYLON.SceneLoader.ImportMesh("",BASE_URL+"models/","spaceship01.obj",scene,function(meshes){
   meshes.forEach(m=>{
     m.isPickable=false; m.position.set(0,0,0); m.scaling.set(1,1,1);
-    if(!m.material||m.material.name==="default"){
-      const mat=new BABYLON.StandardMaterial("shipMat",scene);
-      mat.diffuseColor=new BABYLON.Color3(0.65,0.67,0.72); mat.specularColor=new BABYLON.Color3(0.5,0.5,0.55); mat.specularPower=55; m.material=mat;
-    }
+    const mat=new BABYLON.StandardMaterial("shipMat",scene);
+    mat.diffuseColor=new BABYLON.Color3(0.62,0.64,0.70);
+    mat.specularColor=new BABYLON.Color3(0.6,0.6,0.65);
+    mat.specularPower=60;
+    mat.emissiveColor=new BABYLON.Color3(0.04,0.04,0.05); // minimale Eigenemission
+    m.material=mat;
   });
 },null,function(s,msg){console.warn("OBJ:",msg);});
 
@@ -521,41 +524,42 @@ const artMeshes={};
 function buildPlane(art){
   const pos=new BABYLON.Vector3(...art.pos);
 
-  // Rahmen (Box, leicht hinter der Plane)
-  const frame=BABYLON.MeshBuilder.CreateBox(art.id+"_fr",{width:4.6,height:3.4,depth:0.09},scene);
+  // Weißer Rahmen (Box, dreht sich mit der Plane)
+  const frame=BABYLON.MeshBuilder.CreateBox(art.id+"_fr",{width:4.65,height:3.45,depth:0.12},scene);
   frame.position.copyFrom(pos); frame.isPickable=false;
+  frame.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL; // dreht sich immer zur Kamera
   const fmat=new BABYLON.StandardMaterial(art.id+"_fmat",scene);
-  fmat.diffuseColor=new BABYLON.Color3(0.94,0.94,0.94); fmat.specularColor=new BABYLON.Color3(0.03,0.03,0.03);
-  frame.material=fmat; frame.rotation.set(...art.rot);
+  fmat.diffuseColor=new BABYLON.Color3(0.96,0.96,0.96);
+  fmat.emissiveColor=new BABYLON.Color3(0.15,0.15,0.15); // leicht selbstleuchtend
+  frame.material=fmat;
 
-  // Bild-Plane: DOUBLESIDED damit Bild von beiden Seiten sichtbar
-  const mesh=BABYLON.MeshBuilder.CreatePlane(art.id,{
-    width:4.0, height:2.9,
-    sideOrientation: BABYLON.Mesh.DOUBLESIDE  // ← behebt unsichtbare Rückseite
-  },scene);
-  // Plane sitzt exakt auf dem Rahmen (leicht davor)
+  // Bild-Plane: billboardMode = immer zur Kamera → Bild immer sichtbar
+  const mesh=BABYLON.MeshBuilder.CreatePlane(art.id,{width:4.1,height:3.0},scene);
   mesh.position.copyFrom(pos);
-  mesh.rotation.set(...art.rot);
+  mesh.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
 
   const pmat=new BABYLON.StandardMaterial(art.id+"_m",scene);
-  pmat.backFaceCulling=false;  // zusätzlich: von beiden Seiten rendern
+  pmat.backFaceCulling=false;
 
   if(art.image){
-    // Pfad: BASE_URL + image (z.B. BASE_URL+"img/w001.jpg")
-    const imgUrl = art.image.startsWith("http") ? art.image : BASE_URL + art.image;
-    pmat.diffuseTexture = new BABYLON.Texture(imgUrl, scene);
-    pmat.diffuseTexture.hasAlpha = false;
-    pmat.emissiveColor = new BABYLON.Color3(0.12,0.12,0.12); // leichte Eigenbeleuchtung damit Bild sichtbar
-    pmat.disableLighting = false;
+    const imgUrl=art.image.startsWith("http")?art.image:BASE_URL+art.image;
+    pmat.diffuseTexture=new BABYLON.Texture(imgUrl,scene);
+    pmat.diffuseTexture.hasAlpha=false;
+    // Vollständig selbstleuchtend → Bild unabhängig vom Licht sichtbar
+    pmat.emissiveTexture=new BABYLON.Texture(imgUrl,scene);
+    pmat.emissiveColor=new BABYLON.Color3(1,1,1);
+    pmat.disableLighting=true;
   } else {
-    pmat.diffuseColor=new BABYLON.Color3(0.75,0.76,0.78);
-    pmat.emissiveColor=new BABYLON.Color3(0.06,0.06,0.06);
+    pmat.diffuseColor=new BABYLON.Color3(0.78,0.79,0.80);
+    pmat.emissiveColor=new BABYLON.Color3(0.08,0.08,0.08);
   }
   mesh.material=pmat;
   mesh.metadata={type:"artwork", data:art, frame};
   mesh.isPickable=true;
   mesh.actionManager=new BABYLON.ActionManager(scene);
-  mesh.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickTrigger,()=>openPanel(art,mesh)));
+  mesh.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
+    BABYLON.ActionManager.OnPickTrigger,()=>openPanel(art,mesh)
+  ));
   artMeshes[art.id]=mesh;
 }
 ARTWORKS.forEach(buildPlane);
