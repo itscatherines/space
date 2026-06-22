@@ -323,13 +323,13 @@ window.addEventListener("keydown",e=>{
   if(e.code==="KeyE")      cycleZone();
 });
 
-// ── LICHT: Sonne von schräg oben-vorne, neutral weiß ──
+// ── LICHT: dezent, Weltraum-Stimmung ──
 const sunLight=new BABYLON.DirectionalLight("sunLight",new BABYLON.Vector3(-0.3,-0.5,0.8),scene);
-sunLight.intensity=1.8; sunLight.diffuse=new BABYLON.Color3(1,0.98,0.95);
-sunLight.specular=new BABYLON.Color3(0.8,0.85,1.0);
+sunLight.intensity=0.9; sunLight.diffuse=new BABYLON.Color3(1,0.98,0.95);
+sunLight.specular=new BABYLON.Color3(0.4,0.45,0.5);
 const fillLight=new BABYLON.HemisphericLight("fill",new BABYLON.Vector3(0,1,0),scene);
-fillLight.intensity=0.35; fillLight.diffuse=new BABYLON.Color3(0.4,0.5,0.7);
-fillLight.groundColor=new BABYLON.Color3(0.05,0.05,0.1);
+fillLight.intensity=0.15; fillLight.diffuse=new BABYLON.Color3(0.3,0.38,0.55);
+fillLight.groundColor=new BABYLON.Color3(0.02,0.02,0.05);
 
 // ── STERNE ──
 function starField(sc,count,rMin,rMax,sz){
@@ -561,44 +561,33 @@ SOLAR.slice(1).forEach(([name,distAU,scaledDist,diam,r,g,b,hasRing,ringD])=>{
   lm.diffuseTexture=ltex; lm.emissiveColor=new BABYLON.Color3(1,1,1); lm.disableLighting=true; lm.hasAlpha=true; lbl.material=lm;
 });
 
-// ── RAUMSCHIFF mit Innenbeleuchtung ──
-// Warmes Licht im Schiffsinnern
+// ── RAUMSCHIFF ──
+// Subtile Innenbeleuchtung
 const shipInteriorLight=new BABYLON.PointLight("shipLight",new BABYLON.Vector3(0,0.5,2),scene);
-shipInteriorLight.intensity=6.0;
+shipInteriorLight.intensity=2.5;
 shipInteriorLight.diffuse=new BABYLON.Color3(1,0.92,0.75);
-shipInteriorLight.specular=new BABYLON.Color3(0.9,0.8,0.6);
-shipInteriorLight.range=22;
+shipInteriorLight.range=18;
 
-// Navigationslicht vorne
-const shipFrontLight=new BABYLON.SpotLight(
-  "shipFront",new BABYLON.Vector3(0,2,-10),new BABYLON.Vector3(0,-0.1,1),Math.PI/3,1.5,scene
-);
-shipFrontLight.intensity=4.0;
-shipFrontLight.diffuse=new BABYLON.Color3(0.7,0.85,1.0);
-shipFrontLight.range=35;
-
-BABYLON.SceneLoader.ImportMesh("",BASE_URL+"models/","spaceship01.obj",scene,function(meshes){
+BABYLON.SceneLoader.ImportMesh("",BASE_URL,"spaceship01.obj",scene,function(meshes){
   meshes.forEach(m=>{
     m.isPickable=false;
     m.position.set(0,0,0);
     m.scaling.set(1,1,1);
-    // Material überschreiben — immer, nicht nur bei "default"
     const mat=new BABYLON.StandardMaterial("shipMat_"+m.name,scene);
-    mat.diffuseColor=new BABYLON.Color3(0.62,0.64,0.70);
-    mat.specularColor=new BABYLON.Color3(0.6,0.6,0.65);
-    mat.specularPower=60;
-    mat.emissiveColor=new BABYLON.Color3(0.06,0.06,0.07);
+    mat.diffuseColor=new BABYLON.Color3(0.60,0.62,0.68);
+    mat.specularColor=new BABYLON.Color3(0.5,0.5,0.55);
+    mat.specularPower=50;
+    mat.emissiveColor=new BABYLON.Color3(0.04,0.04,0.05);
     m.material=mat;
   });
 },null,function(s,msg){
-  console.warn("OBJ Ladefehler:",msg);
-  // Fallback: einfaches Box-Schiff wenn OBJ nicht lädt
-  const fallback=BABYLON.MeshBuilder.CreateBox("shipFallback",{width:10,height:2,depth:30},scene);
-  fallback.position.set(0,0,0); fallback.isPickable=false;
+  console.warn("OBJ:",msg);
+  const fb=BABYLON.MeshBuilder.CreateBox("shipFB",{width:10,height:2,depth:30},scene);
+  fb.position.set(0,0,0); fb.isPickable=false;
   const fm=new BABYLON.StandardMaterial("sfm",scene);
-  fm.diffuseColor=new BABYLON.Color3(0.6,0.62,0.68);
-  fm.emissiveColor=new BABYLON.Color3(0.05,0.05,0.06);
-  fallback.material=fm;
+  fm.diffuseColor=new BABYLON.Color3(0.55,0.57,0.62);
+  fm.emissiveColor=new BABYLON.Color3(0.04,0.04,0.05);
+  fb.material=fm;
 });
 
 // ── 9 FOTO-PLANES ──
@@ -606,34 +595,41 @@ const artMeshes={};
 function buildPlane(art){
   const pos=new BABYLON.Vector3(...art.pos);
 
-  // Weißer Rahmen (Box, dreht sich mit der Plane)
-  const frame=BABYLON.MeshBuilder.CreateBox(art.id+"_fr",{width:4.65,height:3.45,depth:0.12},scene);
+  // Weißer Rahmen
+  const frame=BABYLON.MeshBuilder.CreateBox(art.id+"_fr",{width:4.7,height:3.5,depth:0.10},scene);
   frame.position.copyFrom(pos); frame.isPickable=false;
-  frame.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL; // dreht sich immer zur Kamera
+  frame.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
   const fmat=new BABYLON.StandardMaterial(art.id+"_fmat",scene);
-  fmat.diffuseColor=new BABYLON.Color3(0.96,0.96,0.96);
-  fmat.emissiveColor=new BABYLON.Color3(0.15,0.15,0.15); // leicht selbstleuchtend
+  fmat.disableLighting=true;
+  fmat.emissiveColor=new BABYLON.Color3(0.92,0.92,0.92);
   frame.material=fmat;
 
-  // Bild-Plane: billboardMode = immer zur Kamera → Bild immer sichtbar
-  const mesh=BABYLON.MeshBuilder.CreatePlane(art.id,{width:4.1,height:3.0},scene);
+  // Bild-Plane — immer zur Kamera, vollständig selbstleuchtend
+  const mesh=BABYLON.MeshBuilder.CreatePlane(art.id,{
+    width:4.1, height:3.0,
+    sideOrientation:BABYLON.Mesh.DOUBLESIDE
+  },scene);
   mesh.position.copyFrom(pos);
   mesh.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
 
   const pmat=new BABYLON.StandardMaterial(art.id+"_m",scene);
+  pmat.disableLighting=true;   // kein Lichteinfluss → Textur immer voll sichtbar
   pmat.backFaceCulling=false;
 
   if(art.image){
     const imgUrl=art.image.startsWith("http")?art.image:BASE_URL+art.image;
-    pmat.diffuseTexture=new BABYLON.Texture(imgUrl,scene);
-    pmat.diffuseTexture.hasAlpha=false;
-    // Vollständig selbstleuchtend → Bild unabhängig vom Licht sichtbar
-    pmat.emissiveTexture=new BABYLON.Texture(imgUrl,scene);
-    pmat.emissiveColor=new BABYLON.Color3(1,1,1);
-    pmat.disableLighting=true;
+    // emissiveTexture allein (kein diffuse) = Bild leuchtet selbst, volle Helligkeit
+    const tex=new BABYLON.Texture(imgUrl,scene,false,false,
+      BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
+      function(){ /* Erfolg */ },
+      function(){ /* Fehler: grauer Fallback */ pmat.emissiveColor=new BABYLON.Color3(0.5,0.5,0.52); }
+    );
+    tex.hasAlpha=false;
+    pmat.emissiveTexture=tex;
+    pmat.emissiveColor=new BABYLON.Color3(1,1,1);  // weiß = Textur in Originalfarben
+    pmat.diffuseColor=new BABYLON.Color3(0,0,0);   // diffuse aus damit emissive dominant
   } else {
-    pmat.diffuseColor=new BABYLON.Color3(0.78,0.79,0.80);
-    pmat.emissiveColor=new BABYLON.Color3(0.08,0.08,0.08);
+    pmat.emissiveColor=new BABYLON.Color3(0.55,0.56,0.58);
   }
   mesh.material=pmat;
   mesh.metadata={type:"artwork", data:art, frame};
