@@ -378,38 +378,27 @@ earth.position.copyFrom(EARTH_POS); earth.isPickable=false;
 const earthMat=new BABYLON.StandardMaterial("earthMat",scene);
 earthMat.diffuseTexture=new BABYLON.Texture(
   "https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg",
-  scene,false,false,BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
+  scene,false,false,BABYLON.Texture.BILINEAR_SAMPLINGMODE,
   null,()=>{ earthMat.diffuseColor=new BABYLON.Color3(0.07,0.2,0.5); }
 );
-earthMat.specularColor=new BABYLON.Color3(0.15,0.2,0.35);
-earthMat.specularPower=20;
+earthMat.specularColor=new BABYLON.Color3(0.1,0.15,0.3);
+earthMat.specularPower=18;
 earthMat.emissiveColor=new BABYLON.Color3(0,0,0);
 earth.material=earthMat;
 
-// Wolken — kein emissive, nur leicht transparent
-const clouds=BABYLON.MeshBuilder.CreateSphere("clouds",{diameter:490,segments:48},scene);
-clouds.position.copyFrom(EARTH_POS); clouds.isPickable=false;
-const cloudMat=new BABYLON.StandardMaterial("cloudMat",scene);
-cloudMat.diffuseTexture=new BABYLON.Texture(
-  "https://unpkg.com/three-globe/example/img/earth-clouds.png",
-  scene,false,false,BABYLON.Texture.BILINEAR_SAMPLINGMODE
-);
-cloudMat.diffuseTexture.hasAlpha=true;
-cloudMat.useAlphaFromDiffuseTexture=true;
-cloudMat.alpha=0.55;
-cloudMat.backFaceCulling=false;
-clouds.material=cloudMat;
-
-// Atmosphäre — nur blauer Saum, kein weiteres Layer
-const atmo=BABYLON.MeshBuilder.CreateSphere("atmo",{diameter:504,segments:24},scene);
+// Atmosphäre — dünner blauer Saum, komplett emissiv (kein Lichteinfluss)
+const atmo=BABYLON.MeshBuilder.CreateSphere("atmo",{diameter:502,segments:24},scene);
 atmo.position.copyFrom(EARTH_POS); atmo.isPickable=false;
 const atmoMat=new BABYLON.StandardMaterial("atmoMat",scene);
 atmoMat.diffuseColor=new BABYLON.Color3(0,0,0);
 atmoMat.emissiveColor=new BABYLON.Color3(0.03,0.08,0.28);
-atmoMat.alpha=0.10;
+atmoMat.alpha=0.09;
 atmoMat.backFaceCulling=false;
 atmoMat.disableLighting=true;
 atmo.material=atmoMat;
+
+// Platzhalter damit "clouds" Variable nicht crasht im Render Loop
+const clouds=atmo;
 
 // ISS-Orbit-Linien um Erde
 function issOrbitRing(r,tilt,alpha){
@@ -584,7 +573,7 @@ function buildPlane(art){
   frame.isPickable=false;
   const fmat=new BABYLON.StandardMaterial(art.id+"_fmat",scene);
   fmat.disableLighting=true;
-  fmat.emissiveColor=new BABYLON.Color3(0.9,0.9,0.9);
+  fmat.emissiveColor=new BABYLON.Color3(0.88,0.88,0.88);
   frame.material=fmat;
 
   // Bild-Plane
@@ -602,25 +591,13 @@ function buildPlane(art){
 
   if(art.image){
     const imgUrl=art.image.startsWith("http")?art.image:BASE_URL+art.image;
-    // Textur laden — emissiveTexture = Bild leuchtet selbst, kein Lichteinfluss
-    const tex=new BABYLON.Texture(
-      imgUrl, scene,
-      false,  // noMipmap
-      true,   // invertY — wichtig für korrekte Orientierung
-      BABYLON.Texture.BILINEAR_SAMPLINGMODE,
-      ()=>{
-        // Erfolg: Textur sichtbar
-        pmat.emissiveTexture=tex;
-        pmat.emissiveColor=new BABYLON.Color3(1,1,1);
-      },
-      ()=>{
-        // Fehler (z.B. CORS lokal): grauer Placeholder mit Werktitel
-        pmat.emissiveColor=new BABYLON.Color3(0.35,0.36,0.38);
-        console.warn("Textur nicht geladen:",imgUrl);
-      }
-    );
+    // Synchron zuweisen — Babylon lädt async aber die Referenz muss sofort gesetzt sein
+    const tex=new BABYLON.Texture(imgUrl,scene);
+    tex.hasAlpha=false;
+    pmat.emissiveTexture=tex;
+    pmat.emissiveColor=new BABYLON.Color3(1,1,1);
   } else {
-    pmat.emissiveColor=new BABYLON.Color3(0.35,0.36,0.38);
+    pmat.emissiveColor=new BABYLON.Color3(0.38,0.38,0.40);
   }
 
   mesh.material=pmat;
@@ -892,7 +869,7 @@ scene.registerBeforeRender(()=>{
   if(outlineMesh&&selectedMesh){outlineMesh.rotation.copyFrom(selectedMesh.rotation);outlineMesh.position.copyFrom(selectedMesh.position);}
   if(outlineWire&&selectedMesh){outlineWire.rotation.copyFrom(selectedMesh.rotation);outlineWire.position.copyFrom(selectedMesh.position);}
   // Erde + Wolken rotieren
-  earth.rotation.y+=0.00008; clouds.rotation.y+=0.00011; atmo.rotation.y+=0.00006;
+  earth.rotation.y+=0.00008; atmo.rotation.y+=0.00006;
   // Mond umkreist Erde (ein Umlauf ca. 27 Tage — hier stark beschleunigt für Sichtbarkeit)
   moonAngle+=0.0003;
   const mx=EARTH_POS.x+Math.cos(moonAngle)*MOON_DIST;
