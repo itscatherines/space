@@ -300,69 +300,64 @@ BABYLON.SceneLoader.ImportMesh("",BASE_URL,"spaceship01.obj",scene,function(mesh
 },null,function(s,msg){console.warn("OBJ:",msg);const fb=BABYLON.MeshBuilder.CreateBox("shipFB",{width:10,height:2,depth:30},scene);fb.position.set(0,0,0);fb.isPickable=false;const fm=new BABYLON.StandardMaterial("sfm",scene);fm.diffuseColor=new BABYLON.Color3(0.55,0.57,0.62);fm.emissiveColor=new BABYLON.Color3(0.04,0.04,0.05);fb.material=fm;});
 
 // ── 9 FOTO-PLANES ──
-// Strategie: Bild per HTML <img> laden, auf offscreen Canvas zeichnen,
-// Canvas als Quelle fuer ImageData → direkt in Babylon Texture.
-// Das ist identisch zu dem was das Panel macht — kein Unterschied.
 const artMeshes={};
-
 function buildPlane(art){
   const pos=new BABYLON.Vector3(...art.pos);
-  // Rahmen: als dünne Box HINTER der Plane (Z-Offset negativ = weiter von Kamera)
-  // Plane liegt bei pos, Rahmen 0.06 dahinter → Rahmen nie vor Textur
-  const frame=BABYLON.MeshBuilder.CreateBox(art.id+"_fr",{width:4.7,height:3.5,depth:0.04},scene);
-  frame.position.copyFrom(pos);
-  frame.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
-  frame.isPickable=false;
-  const fmat=new BABYLON.StandardMaterial(art.id+"_fmat",scene);
-  fmat.disableLighting=true;
-  fmat.emissiveColor=new BABYLON.Color3(0.88,0.88,0.88);
-  frame.material=fmat;
 
-  // Plane: 0.06 Einheiten VOR dem Rahmen in lokaler Z-Richtung
-  // billboardMode dreht beide zur Kamera — aber Plane muss VOR Rahmen liegen
-  // Lösung: Plane als Kind des Rahmens, mit lokalem Z-Offset
-  const framePivot=new BABYLON.TransformNode(art.id+"_pivot",scene);
-  framePivot.position.copyFrom(pos);
-  framePivot.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
-  frame.parent=framePivot;
-  frame.position.set(0,0,-0.04); // Rahmen leicht hinter Pivot
+  // Weißer Hintergrund (etwas größer als Bildplane, direkt dahinter)
+  const bg=BABYLON.MeshBuilder.CreatePlane(art.id+"_bg",{
+    width:4.5,height:3.3,sideOrientation:BABYLON.Mesh.DOUBLESIDE
+  },scene);
+  bg.position.copyFrom(pos);
+  bg.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
+  bg.isPickable=false;
+  const bgmat=new BABYLON.StandardMaterial(art.id+"_bgm",scene);
+  bgmat.disableLighting=true;
+  bgmat.emissiveColor=new BABYLON.Color3(0.9,0.9,0.9);
+  bgmat.backFaceCulling=false;
+  bg.material=bgmat;
 
-  const mesh=BABYLON.MeshBuilder.CreatePlane(art.id,{width:4.1,height:3.0,sideOrientation:BABYLON.Mesh.DOUBLESIDE},scene);
-  mesh.parent=framePivot;
-  mesh.position.set(0,0,0.06); // Plane klar vor Rahmen
+  // Bildplane — GLEICHE Position, wird NACH bg gerendert (höherer renderingGroupId)
+  const mesh=BABYLON.MeshBuilder.CreatePlane(art.id,{
+    width:4.1,height:2.9,sideOrientation:BABYLON.Mesh.DOUBLESIDE
+  },scene);
+  mesh.position.copyFrom(pos);
+  mesh.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
+  // RenderingGroup 1 = wird nach Gruppe 0 (bg) gerendert → immer vorne
+  mesh.renderingGroupId=1;
 
   const pmat=new BABYLON.StandardMaterial(art.id+"_m",scene);
   pmat.disableLighting=true;
   pmat.backFaceCulling=false;
   pmat.diffuseColor=new BABYLON.Color3(0,0,0);
   pmat.specularColor=new BABYLON.Color3(0,0,0);
-  pmat.emissiveColor=new BABYLON.Color3(0.3,0.3,0.32);
+  pmat.emissiveColor=new BABYLON.Color3(0.32,0.32,0.34); // grau bis Bild geladen
   mesh.material=pmat;
-  // Kein eigenes billboardMode auf mesh — Pivot übernimmt das Drehen
 
   if(art.image){
     const imgUrl=BASE_URL+art.image;
-    // Offscreen Canvas — identisch zu dem was <img> im Panel tut
     const offscreen=document.createElement('canvas');
-    offscreen.width=512;offscreen.height=512;
+    offscreen.width=512; offscreen.height=512;
     const ctx2d=offscreen.getContext('2d');
     const img=new Image();
     img.crossOrigin="anonymous";
     img.onload=function(){
       ctx2d.drawImage(img,0,0,512,512);
-      // DynamicTexture mit vorgefülltem Canvas
       const dt=new BABYLON.DynamicTexture(art.id+"_tex",offscreen,scene,false);
       dt.update(false);
       pmat.emissiveTexture=dt;
       pmat.emissiveColor=new BABYLON.Color3(1,1,1);
     };
+    img.onerror=function(){ console.warn("Bild Fehler:",imgUrl); };
     img.src=imgUrl;
   }
 
-  mesh.metadata={type:"artwork",data:art,frame};
+  mesh.metadata={type:"artwork",data:art};
   mesh.isPickable=true;
   mesh.actionManager=new BABYLON.ActionManager(scene);
-  mesh.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickTrigger,()=>openPanel(art,mesh)));
+  mesh.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
+    BABYLON.ActionManager.OnPickTrigger,()=>openPanel(art,mesh)
+  ));
   artMeshes[art.id]=mesh;
 }
 ARTWORKS.forEach(buildPlane);
