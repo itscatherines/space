@@ -116,7 +116,7 @@ canvas { width:100vw; height:100vh; display:block; touch-action:none; }
 <div id="hud-tl" class="hud-box">
   <h1>Schwerpunkt Gravitation</h1>
   <div id="hud-tl-sub">Virtuelle Ausstellung · 2027</div>
-  <div id="zone-label">Zone: <span id="zone-name-val">SPACE/ ISS</span></div>
+  <div id="zone-label">Zone: <span id="zone-name-val">LEO / ISS</span></div>
   <div id="zone-bar"><div id="zone-bar-fill"></div></div>
 </div>
 <div id="hud-tr" class="hud-box">
@@ -162,8 +162,8 @@ canvas { width:100vw; height:100vh; display:block; touch-action:none; }
 </div>
 
 <div id="portal-hud">
-  <h2>Game Artwork 01</h2>
-  <p>Spekulativer Ausstellungsraum · Angewandte 2027</p>
+  <h2>Freier Fall</h2>
+  <p>Spekulativer Ausstellungsraum · OAF 2027</p>
 </div>
 <button id="portal-back-btn">Zuruck zur Ausstellung</button>
 <div id="portal-transition"></div>
@@ -202,40 +202,40 @@ const LOREM = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do e
 // ═══════════════════════════════════════════════
 const ARTWORKS = [
   { id:"W-001", title:"Flying Hammer",               artist:"Jean Luc Vilmouth",
-    year:"1981", medium:"Skulptur / Objekt",           orbit:"Schwerelosigkeit",        cat:"Weltraumskulptur",
-    statement:null, url:"#", image:"img/flyinghammer.jpg",
+    year:"1981", medium:"Skulptur / Objekt",           orbit:"Schwerelosigkeit",        cat:"Kinetische Skulptur",
+    statement:null, url:"#", image:null,
     pos:[ 22,  5,  8], rot:[0,    0.85, 0.1 ] },
   { id:"W-002", title:"Cosmic Dancer",               artist:"Arthur Woods",
-    year:"1991", medium:"Skulptur / Objekt",         orbit:"MIR Raumstation 1993",    cat:"Weltraumskulptur",
-    statement:null, url:"#", image:"img/cosmicdancer.jpg",
+    year:"1991", medium:"Skulptur, Aluminium",         orbit:"MIR Raumstation 1993",    cat:"Weltraumskulptur",
+    statement:null, url:"#", image:null,
     pos:[-20,  3, -5], rot:[0.08,-0.9,  0   ] },
   { id:"W-003", title:"Space 2",                     artist:"Space Invader",
     year:"2015", medium:"Mosaik, Keramik",             orbit:"ISS, 400 km",             cat:"Installation",
-    statement:null, url:"#", image:"spaceinvader.jpg",
+    statement:null, url:"#", image:null,
     pos:[  6,-12, 14], rot:[-0.1,  0.5, 0.08] },
   { id:"W-004", title:"In Bloom #1",                 artist:"Azuma Makoto",
     year:"2014", medium:"Blumen, Fotografie",          orbit:"Stratosphaere",           cat:"Vergaengliche Skulptur",
-    statement:null, url:"#", image:"img/inbloom.jpg",
+    statement:null, url:"#", image:null,
     pos:[ 30, 10, 18], rot:[0.05,-1.1,  0   ] },
   { id:"W-005", title:"ENOCH",                       artist:"Tavares Strachan",
-    year:"2018", medium:"Stellit",   orbit:"Erdorbit",               cat:"Konzeptarbeit",
-    statement:null, url:"#", image:"img/enoch.png",
+    year:"2018", medium:"Goldene Kapsel, Raumfahrt",   orbit:"Erdorbit",               cat:"Konzeptarbeit",
+    statement:null, url:"#", image:null,
     pos:[-26, -4, 25], rot:[0.1,   0.95,-0.1 ] },
   { id:"W-006", title:"The Absence of Nothingness",  artist:"Payer Gabriel",
-    year:"2022", medium:"Painting",         orbit:"Simulierter Orbit",       cat:"Gemälde",
-    statement:null, url:"#", image:"img/theabscenceofnothingness.jpg",
+    year:"2022", medium:"Video, Installation",         orbit:"Simulierter Orbit",       cat:"Videoinstallation",
+    statement:null, url:"#", image:null,
     pos:[ 10,-15, 35], rot:[-0.12,  0.6, 0   ] },
   { id:"W-007", title:"Holding Air",                 artist:"Nahum",
-    year:"2015", medium:"Performance",       orbit:"Parabelflug",             cat:"Performance / Objekt",
-    statement:null, url:"#", image:"img/holdingair.jpg",
+    year:"2015", medium:"Performance, Atemluft",       orbit:"Parabelflug",             cat:"Performance / Objekt",
+    statement:null, url:"#", image:null,
     pos:[-18, 14, 42], rot:[0.18,-0.75, 0.1 ] },
   { id:"W-008", title:"Reinventing the Spindle",     artist:"Ebru Kurbak",
     year:"2019–", medium:"Textil, Spinnmaschine",     orbit:"Konzipiert fuer Orbit",   cat:"Textile Skulptur",
-    statement:null, url:"#", image:"img/reinventingthespindle.jpg",
+    statement:null, url:"#", image:null,
     pos:[ 24, 16, 80], rot:[0,   -1.3,  0.1 ] },
   { id:"W-009", title:"Water Is My Eye",             artist:"Bernd Oppl",
     year:"2024", medium:"4K Video",                   orbit:"Spekulativ / Orbit",      cat:"Videoarbeit",
-    statement:null, url:"#", image:"img/waterismyeye.jpg",
+    statement:null, url:"#", image:null,
     pos:[-16, -7,105], rot:[0.1,   0.8,  0   ] },
 ];
 
@@ -266,7 +266,7 @@ const SCULPTURES = [
 //    Planeten log-skaliert fuer Uebersichtlichkeit
 //    Planetengroessen leicht uebertrieben (sonst unsichtbar)
 // ═══════════════════════════════════════════════
-const EARTH_POS = new BABYLON.Vector3(0, -420, 0); // Erde unter der Ausstellung
+const EARTH_POS = new BABYLON.Vector3(0, -520, 0); // weiter unten = kleinere scheinbare Groesse
 const SUN_DIST  = 800;
 
 // [name, dist_AU, log_scale_dist, diameter, r, g, b, hasRing, ringD]
@@ -290,9 +290,9 @@ const PLANET_ANGLES = {
 };
 
 const ZONES = [
-  { name:"LEO / ISS",   alt:"408 KM",  camPos:[ 0, 0,-22], progress:"33%"  },
-  { name:"Mittlerer Orbit", alt:"2000 KM", camPos:[ 0, 4, 50], progress:"66%"  },
-  { name:"Tiefer Orbit",alt:"∞",       camPos:[ 0, 0,130], progress:"100%" },
+  { name:"LEO / ISS",       alt:"408 KM",  camPos:[ 0, 8,-28], progress:"33%"  },
+  { name:"Mittlerer Orbit", alt:"2000 KM", camPos:[ 0, 4,  50], progress:"66%"  },
+  { name:"Tiefer Orbit",    alt:"∞",       camPos:[ 0, 0, 130], progress:"100%" },
 ];
 let currentZone=0;
 
@@ -303,8 +303,8 @@ const scene=new BABYLON.Scene(engine);
 scene.clearColor=new BABYLON.Color4(0,0.001,0.008,1);
 
 // ── KAMERA (startet neben Raumschiff, blickt auf Ausstellung) ──
-const camera=new BABYLON.FreeCamera("cam",new BABYLON.Vector3(0,0,-22),scene);
-camera.setTarget(new BABYLON.Vector3(0,0,10));
+const camera=new BABYLON.FreeCamera("cam",new BABYLON.Vector3(0,8,-28),scene);
+camera.setTarget(new BABYLON.Vector3(0,0,5));
 camera.attachControl(mainCanvas,true);
 camera.minZ=0.1; camera.maxZ=12000; camera.inertia=0.93; camera.speed=0.5; camera.angularSensibility=1100;
 camera.keysUp=[87]; camera.keysDown=[83]; camera.keysLeft=[65]; camera.keysRight=[68];
@@ -362,7 +362,7 @@ starField(scene,3000,2000,6000,1);
 // ── ERDE: PBR-Material mit Bump, Specular, Nachtseite, Wolken, Atmosphäre ──
 // Texturquellen: NASA / unpkg three-globe (public domain)
 // Schicht 1: Oberfläche mit Diffuse + Bump + Specular + Nacht-Emissive
-const earth=BABYLON.MeshBuilder.CreateSphere("earth",{diameter:640,segments:128},scene);
+const earth=BABYLON.MeshBuilder.CreateSphere("earth",{diameter:480,segments:128},scene);
 earth.position.copyFrom(EARTH_POS); earth.isPickable=false;
 
 const earthMat=new BABYLON.StandardMaterial("earthMat",scene);
@@ -401,7 +401,7 @@ earthMat.emissiveColor=new BABYLON.Color3(0.07,0.07,0.06);
 earth.material=earthMat;
 
 // Schicht 2: Wolken (separate rotierende Sphere, etwas größer)
-const clouds=BABYLON.MeshBuilder.CreateSphere("clouds",{diameter:648,segments:64},scene);
+const clouds=BABYLON.MeshBuilder.CreateSphere("clouds",{diameter:488,segments:64},scene);
 clouds.position.copyFrom(EARTH_POS); clouds.isPickable=false;
 const cloudMat=new BABYLON.StandardMaterial("cloudMat",scene);
 cloudMat.diffuseTexture=new BABYLON.Texture(
@@ -416,14 +416,14 @@ clouds.material=cloudMat;
 
 // Schicht 3: Atmosphären-Glow (zwei Ringe — inneres Blau + äußeres Haze)
 // Innere Atmosphäre: blaues Streuungslicht
-const atmo=BABYLON.MeshBuilder.CreateSphere("atmo",{diameter:662,segments:32},scene);
+const atmo=BABYLON.MeshBuilder.CreateSphere("atmo",{diameter:500,segments:32},scene);
 atmo.position.copyFrom(EARTH_POS); atmo.isPickable=false;
 const atmoMat=new BABYLON.StandardMaterial("atmoMat",scene);
 atmoMat.emissiveColor=new BABYLON.Color3(0.05,0.12,0.38);
 atmoMat.alpha=0.15; atmoMat.backFaceCulling=false; atmo.material=atmoMat;
 
 // Äußeres Haze: sehr dünner blauer Saum (Limb-Effekt)
-const atmoOuter=BABYLON.MeshBuilder.CreateSphere("atmoOuter",{diameter:690,segments:24},scene);
+const atmoOuter=BABYLON.MeshBuilder.CreateSphere("atmoOuter",{diameter:525,segments:24},scene);
 atmoOuter.position.copyFrom(EARTH_POS); atmoOuter.isPickable=false;
 const atmoOuterMat=new BABYLON.StandardMaterial("atmoOuterMat",scene);
 atmoOuterMat.emissiveColor=new BABYLON.Color3(0.03,0.06,0.22);
@@ -440,10 +440,10 @@ function issOrbitRing(r,tilt,alpha){
   lm.color=new BABYLON.Color3(0.7,0.7,0.75); lm.alpha=alpha; lm.isPickable=false;
   lm.position.copyFrom(EARTH_POS); lm.rotation.x=tilt;
 }
-issOrbitRing(338,0.92,0.2);   // ISS-Bahn (~408km = 320+640/2 radius)
-issOrbitRing(355,0.62,0.12);
-issOrbitRing(380,0.12,0.07);
-issOrbitRing(310,1.18,0.08);
+issOrbitRing(262,0.92,0.2);
+issOrbitRing(278,0.62,0.12);
+issOrbitRing(298,0.12,0.07);
+issOrbitRing(242,1.18,0.08);
 
 // ── SONNENSYSTEM ────────────────────────────────────────────────
 // Sonne: weit in -Y Richtung (unter/hinter Erde sichtbar)
@@ -506,7 +506,7 @@ SOLAR.slice(1).forEach(([name,distAU,scaledDist,diam,r,g,b,hasRing,ringD])=>{
 });
 
 // ── RAUMSCHIFF ──
-BABYLON.SceneLoader.ImportMesh("",BASE_URL,"spaceship01.obj",scene,function(meshes){
+BABYLON.SceneLoader.ImportMesh("",BASE_URL+"models/","spaceship01.obj",scene,function(meshes){
   meshes.forEach(m=>{
     m.isPickable=false; m.position.set(0,0,0); m.scaling.set(1,1,1);
     if(!m.material||m.material.name==="default"){
@@ -521,22 +521,35 @@ const artMeshes={};
 function buildPlane(art){
   const pos=new BABYLON.Vector3(...art.pos);
 
-  const frame=BABYLON.MeshBuilder.CreateBox(art.id+"_fr",{width:4.6,height:3.4,depth:0.07},scene);
+  // Rahmen (Box, leicht hinter der Plane)
+  const frame=BABYLON.MeshBuilder.CreateBox(art.id+"_fr",{width:4.6,height:3.4,depth:0.09},scene);
   frame.position.copyFrom(pos); frame.isPickable=false;
   const fmat=new BABYLON.StandardMaterial(art.id+"_fmat",scene);
   fmat.diffuseColor=new BABYLON.Color3(0.94,0.94,0.94); fmat.specularColor=new BABYLON.Color3(0.03,0.03,0.03);
   frame.material=fmat; frame.rotation.set(...art.rot);
 
-  const mesh=BABYLON.MeshBuilder.CreatePlane(art.id,{width:4.0,height:2.9},scene);
-  mesh.position.set(pos.x,pos.y,pos.z+0.07); mesh.rotation.set(...art.rot);
+  // Bild-Plane: DOUBLESIDED damit Bild von beiden Seiten sichtbar
+  const mesh=BABYLON.MeshBuilder.CreatePlane(art.id,{
+    width:4.0, height:2.9,
+    sideOrientation: BABYLON.Mesh.DOUBLESIDE  // ← behebt unsichtbare Rückseite
+  },scene);
+  // Plane sitzt exakt auf dem Rahmen (leicht davor)
+  mesh.position.copyFrom(pos);
+  mesh.rotation.set(...art.rot);
 
   const pmat=new BABYLON.StandardMaterial(art.id+"_m",scene);
+  pmat.backFaceCulling=false;  // zusätzlich: von beiden Seiten rendern
+
   if(art.image){
-    pmat.diffuseTexture=new BABYLON.Texture(art.image,scene);
-    pmat.emissiveColor=new BABYLON.Color3(0.07,0.07,0.07);
+    // Pfad: BASE_URL + image (z.B. BASE_URL+"img/w001.jpg")
+    const imgUrl = art.image.startsWith("http") ? art.image : BASE_URL + art.image;
+    pmat.diffuseTexture = new BABYLON.Texture(imgUrl, scene);
+    pmat.diffuseTexture.hasAlpha = false;
+    pmat.emissiveColor = new BABYLON.Color3(0.12,0.12,0.12); // leichte Eigenbeleuchtung damit Bild sichtbar
+    pmat.disableLighting = false;
   } else {
     pmat.diffuseColor=new BABYLON.Color3(0.75,0.76,0.78);
-    pmat.emissiveColor=new BABYLON.Color3(0.018,0.018,0.018);
+    pmat.emissiveColor=new BABYLON.Color3(0.06,0.06,0.06);
   }
   mesh.material=pmat;
   mesh.metadata={type:"artwork", data:art, frame};
@@ -572,9 +585,9 @@ SCULPTURES.forEach(buildSculpture);
 
 // ── PORTALE ──
 const PORTALS=[
-  { id:"P-001", title:"Game Installation 01", isWorld:true,  pos:[-12, 5, 20], color:[0.95,0.28,0.1], radius:2.3 },
-  { id:"P-002", title:"Game Installation 02",    isWorld:false, pos:[ 20,-4, 50], color:[0.3,0.8,0.5], radius:2.5 },
-  { id:"P-003", title:"Game Installation 03",                  isWorld:false, pos:[  0, 0,145], color:[0.7,0.5,1.0], radius:3.0 },
+  { id:"P-001", title:"Freier Fall", isWorld:true,  pos:[-12, 5, 20], color:[0.95,0.28,0.1], radius:2.3 },
+  { id:"P-002", title:"Invertierte Gravitation",    isWorld:false, pos:[ 20,-4, 50], color:[0.3,0.8,0.5], radius:2.5 },
+  { id:"P-003", title:"Nullpunkt",                  isWorld:false, pos:[  0, 0,145], color:[0.7,0.5,1.0], radius:3.0 },
 ];
 const portalMeshes=[];
 PORTALS.forEach(p=>{
@@ -641,7 +654,10 @@ function openPanel(art,mesh){
   if(art.statement){stEl.textContent=art.statement;stEl.classList.remove("placeholder");}
   else{stEl.textContent=LOREM;stEl.classList.add("placeholder");}
   const imgEl=document.getElementById("pimg"),phEl=document.getElementById("pimg-placeholder");
-  if(art.image){imgEl.src=art.image;imgEl.style.display="block";phEl.style.display="none";}
+  if(art.image){
+    const imgUrl = art.image.startsWith("http") ? art.image : BASE_URL + art.image;
+    imgEl.src=imgUrl; imgEl.style.display="block"; phEl.style.display="none";
+  }
   else{imgEl.style.display="none";imgEl.src="";phEl.style.display="block";phEl.textContent="PLACEHOLDER — "+art.artist.toUpperCase();}
   selectedMesh=mesh; showOutline(mesh);
   overlay.classList.add("open"); camera.detachControl(mainCanvas);
@@ -682,7 +698,7 @@ function cycleZone(){
 }
 
 // ══════════════════════════════════════════════════════════
-//  PORTAL-WELT: "Game Installation 01" — separate Babylon Engine
+//  PORTAL-WELT: "FREIER FALL" — separate Babylon Engine
 //  Rote Atmosphaere, Nebula, Wurmloch, fallende Partikel
 // ══════════════════════════════════════════════════════════
 const portalCanvas=document.getElementById("portalCanvas");
