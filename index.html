@@ -176,7 +176,8 @@ canvas { width:100vw; height:100vh; display:block; touch-action:none; }
 // ═══════════════════════════════════════════════
 //  BASE_URL: lokal "./"  |  GitHub Pages "/repo-name/"
 // ═══════════════════════════════════════════════
-const BASE_URL = "./";
+// GitHub Pages: https://itscatherines.github.io/space/
+const BASE_URL = "/space/";
 
 (function(){
   const s=document.createElement('style');
@@ -225,7 +226,7 @@ const ARTWORKS=[
    pos:[-18,14,42]},
   {id:"W-008",title:"Reinventing the Spindle",artist:"Ebru Kurbak",
    year:"ongoing",medium:"Textil",         orbit:"Konzipiert fuer Orbit",cat:"Textile Skulptur",
-   statement:null,url:"#",image:"img/reinventingthespindle.jpg",
+   statement:null,url:"#",image:"img/reinventinghthespindle.jpg",
    pos:[24,16,80]},
   {id:"W-009",title:"Water Is My Eye",    artist:"Bernd Oppl",
    year:"2024",medium:"4K Video",          orbit:"Spekulativ / Orbit",   cat:"Videoarbeit",
@@ -517,7 +518,9 @@ BABYLON.SceneLoader.ImportMesh("",BASE_URL,"spaceship01.obj",scene,function(mesh
 });
 
 // ── 9 FOTO-PLANES ──
-// emissiveTexture + disableLighting = Bild immer sichtbar unabh. vom Licht
+// WICHTIG: Texturen laden nur über HTTP/HTTPS (GitHub Pages, Live Server).
+// Lokal per file:// → CORS blockiert → Planes zeigen grau.
+// Lösung lokal: VS Code Live Server oder python3 -m http.server 8080
 const artMeshes={};
 function buildPlane(art){
   const pos=new BABYLON.Vector3(...art.pos);
@@ -537,16 +540,28 @@ function buildPlane(art){
 
   const pmat=new BABYLON.StandardMaterial(art.id+"_m",scene);
   pmat.disableLighting=true; pmat.backFaceCulling=false;
+  // Standard: grau (wird durch Textur überschrieben sobald geladen)
+  pmat.emissiveColor=new BABYLON.Color3(0.35,0.35,0.37);
   pmat.diffuseColor=new BABYLON.Color3(0,0,0);
 
   if(art.image){
     const imgUrl=art.image.startsWith("http")?art.image:BASE_URL+art.image;
-    const tex=new BABYLON.Texture(imgUrl,scene,true,false,BABYLON.Texture.BILINEAR_SAMPLINGMODE);
-    pmat.emissiveTexture=tex;
-    pmat.emissiveColor=new BABYLON.Color3(1,1,1);
-  } else {
-    pmat.emissiveColor=new BABYLON.Color3(0.38,0.38,0.40);
+    const tex=new BABYLON.Texture(
+      imgUrl, scene,
+      true,  // noMipmap
+      false, // invertY
+      BABYLON.Texture.NEAREST_SAMPLINGMODE
+    );
+    // onLoadObservable: erst wenn Textur geladen → Material setzen
+    tex.onLoadObservable.addOnce(()=>{
+      pmat.emissiveTexture=tex;
+      pmat.emissiveColor=new BABYLON.Color3(1,1,1);
+    });
+    tex.onErrorObservable.addOnce(()=>{
+      console.warn("Bild nicht geladen (CORS?):",imgUrl);
+    });
   }
+
   mesh.material=pmat;
   mesh.metadata={type:"artwork",data:art,frame};
   mesh.isPickable=true;
