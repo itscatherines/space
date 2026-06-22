@@ -397,7 +397,7 @@ earthMat.emissiveColor=new BABYLON.Color3(0,0,0);
 earth.material=earthMat;
 
 // Schicht 2: Wolken (separate rotierende Sphere, etwas größer)
-/*const clouds=BABYLON.MeshBuilder.CreateSphere("clouds",{diameter:488,segments:64},scene);
+const clouds=BABYLON.MeshBuilder.CreateSphere("clouds",{diameter:488,segments:64},scene);
 clouds.position.copyFrom(EARTH_POS); clouds.isPickable=false;
 const cloudMat=new BABYLON.StandardMaterial("cloudMat",scene);
 cloudMat.diffuseTexture=new BABYLON.Texture(
@@ -427,7 +427,7 @@ atmoOuterMat.diffuseColor=new BABYLON.Color3(0,0,0);
 atmoOuterMat.emissiveColor=new BABYLON.Color3(0.02,0.05,0.18);
 atmoOuterMat.alpha=0.05; atmoOuterMat.backFaceCulling=false;
 atmoOuterMat.disableLighting=true;
-atmoOuter.material=atmoOuterMat;*/
+atmoOuter.material=atmoOuterMat;
 
 // ISS-Orbit-Linien um Erde
 function issOrbitRing(r,tilt,alpha){
