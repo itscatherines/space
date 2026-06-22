@@ -307,18 +307,38 @@ const artMeshes={};
 
 function buildPlane(art){
   const pos=new BABYLON.Vector3(...art.pos);
-  const frame=BABYLON.MeshBuilder.CreateBox(art.id+"_fr",{width:4.7,height:3.5,depth:0.10},scene);
-  frame.position.copyFrom(pos);frame.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;frame.isPickable=false;
-  const fmat=new BABYLON.StandardMaterial(art.id+"_fmat",scene);fmat.disableLighting=true;fmat.emissiveColor=new BABYLON.Color3(0.88,0.88,0.88);frame.material=fmat;
+  // Rahmen: als dünne Box HINTER der Plane (Z-Offset negativ = weiter von Kamera)
+  // Plane liegt bei pos, Rahmen 0.06 dahinter → Rahmen nie vor Textur
+  const frame=BABYLON.MeshBuilder.CreateBox(art.id+"_fr",{width:4.7,height:3.5,depth:0.04},scene);
+  frame.position.copyFrom(pos);
+  frame.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
+  frame.isPickable=false;
+  const fmat=new BABYLON.StandardMaterial(art.id+"_fmat",scene);
+  fmat.disableLighting=true;
+  fmat.emissiveColor=new BABYLON.Color3(0.88,0.88,0.88);
+  frame.material=fmat;
+
+  // Plane: 0.06 Einheiten VOR dem Rahmen in lokaler Z-Richtung
+  // billboardMode dreht beide zur Kamera — aber Plane muss VOR Rahmen liegen
+  // Lösung: Plane als Kind des Rahmens, mit lokalem Z-Offset
+  const framePivot=new BABYLON.TransformNode(art.id+"_pivot",scene);
+  framePivot.position.copyFrom(pos);
+  framePivot.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
+  frame.parent=framePivot;
+  frame.position.set(0,0,-0.04); // Rahmen leicht hinter Pivot
 
   const mesh=BABYLON.MeshBuilder.CreatePlane(art.id,{width:4.1,height:3.0,sideOrientation:BABYLON.Mesh.DOUBLESIDE},scene);
-  mesh.position.copyFrom(pos);mesh.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
+  mesh.parent=framePivot;
+  mesh.position.set(0,0,0.06); // Plane klar vor Rahmen
 
   const pmat=new BABYLON.StandardMaterial(art.id+"_m",scene);
-  pmat.disableLighting=true;pmat.backFaceCulling=false;
-  pmat.diffuseColor=new BABYLON.Color3(0,0,0);pmat.specularColor=new BABYLON.Color3(0,0,0);
+  pmat.disableLighting=true;
+  pmat.backFaceCulling=false;
+  pmat.diffuseColor=new BABYLON.Color3(0,0,0);
+  pmat.specularColor=new BABYLON.Color3(0,0,0);
   pmat.emissiveColor=new BABYLON.Color3(0.3,0.3,0.32);
   mesh.material=pmat;
+  // Kein eigenes billboardMode auf mesh — Pivot übernimmt das Drehen
 
   if(art.image){
     const imgUrl=BASE_URL+art.image;
