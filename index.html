@@ -275,28 +275,7 @@ const SCULPTURES = [
 //    Planeten log-skaliert fuer Uebersichtlichkeit
 //    Planetengroessen leicht uebertrieben (sonst unsichtbar)
 // ═══════════════════════════════════════════════
-const EARTH_POS = new BABYLON.Vector3(0, -520, 0); // weiter unten = kleinere scheinbare Groesse
-const SUN_DIST  = 800;
-
-// [name, dist_AU, log_scale_dist, diameter, r, g, b, hasRing, ringD]
-// log_scale_dist: visuelle Distanz (AU*log damit aussen sichtbar)
-const SOLAR = [
-  ["Sonne",   0,      SUN_DIST, 45,  1.0,  0.95, 0.3,  false, 0  ],
-  ["Merkur",  0.39,   90,       1.4, 0.62, 0.56, 0.46, false, 0  ],
-  ["Venus",   0.72,   150,      3.5, 0.96, 0.86, 0.52, false, 0  ],
-  ["Mars",    1.52,   240,      2.1, 0.86, 0.32, 0.18, false, 0  ],
-  ["Jupiter", 5.2,    380,     14,   0.86, 0.72, 0.58, false, 0  ],
-  ["Saturn",  9.5,    480,     11,   0.9,  0.83, 0.62, true,  22 ],
-  ["Uranus",  19.2,   560,      6,   0.55, 0.82, 0.93, false, 0  ],
-  ["Neptun",  30.1,   620,      5.5, 0.32, 0.42, 0.96, false, 0  ],
-];
-// Sonnensystem-Winkel: Sonne liegt auf der -Y Achse weit unten,
-// Planeten sind um die Erde verteilt auf der Ekliptik-Ebene (Y=const)
-// Winkel beginnend bei Sonne, dann Richtungen für die Planeten
-const PLANET_ANGLES = {
-  "Merkur": 0.6, "Venus": 1.4, "Mars": -0.8,
-  "Jupiter": 2.2, "Saturn": -1.6, "Uranus": 3.0, "Neptun": -2.4
-};
+const EARTH_POS = new BABYLON.Vector3(0, -520, 0);
 
 const ZONES = [
   { name:"LEO / ISS",       alt:"408 KM",  camPos:[ 0, 8,-28], progress:"33%"  },
@@ -476,60 +455,121 @@ moonLblMat.disableLighting=true; moonLblMat.hasAlpha=true; moonLbl.material=moon
 // Mond langsam um Erde rotieren lassen (Render Loop — wird unten ergänzt)
 let moonAngle=MOON_ANGLE;
 
+// ═══════════════════════════════════════════════════════════════
+//  SONNENSYSTEM — Planeten kreisen um die Sonne
+//  Sonne liegt bei SUN_POS, weit hinter/unter der Ausstellung.
+//  Planeten-Orbits sind Kreise um die Sonne (XZ-Ebene, leicht geneigt).
+//  Erde ist bei EARTH_POS (unser Ausstellungsort).
+//  Alle anderen Planeten um die Sonne herum, korrekte Reihenfolge.
+// ═══════════════════════════════════════════════════════════════
+const SUN_POS = new BABYLON.Vector3(0, -900, 600); // Sonne: weit weg, seitlich sichtbar
+const EARTH_ORBIT_R = 280; // Erde bei 1 AU = 280 Einheiten von Sonne
+
+// Startwinkel der Erde auf ihrer Umlaufbahn
+const EARTH_ORBIT_ANGLE = Math.PI * 0.7;
+
+// Planetendata: [name, orbitRadius, diameter, r,g,b, hasRing, ringDiam, startAngle]
+const PLANETS_DATA = [
+  ["Merkur",  70,   2.2,  0.62,0.57,0.47, false, 0,   0.3  ],
+  ["Venus",   130,  5.5,  0.96,0.86,0.52, false, 0,   1.2  ],
+  ["Erde",    EARTH_ORBIT_R, 0, 0,0,0,    false, 0,   EARTH_ORBIT_ANGLE], // Erde = EARTH_POS
+  ["Mars",    380,  3.2,  0.86,0.32,0.18, false, 0,   2.5  ],
+  ["Jupiter", 620,  22,   0.86,0.72,0.58, false, 0,   0.8  ],
+  ["Saturn",  780,  18,   0.90,0.83,0.62, true,  36,  1.8  ],
+  ["Uranus",  910,  10,   0.55,0.82,0.93, false, 0,   3.2  ],
+  ["Neptun",  1010, 9,    0.32,0.42,0.96, false, 0,   4.1  ],
+];
+
+// Orbit-Winkel für Animation
+const planetAngles={};
+const planetMeshes={};
+const planetRings={};
+const planetLabels={};
+
 // Sonne
-const sunSphere=BABYLON.MeshBuilder.CreateSphere("ss_Sonne",{diameter:45,segments:24},scene);
-sunSphere.position.set(0, -(SUN_DIST+320), 0); sunSphere.isPickable=false;
+const sunSphere=BABYLON.MeshBuilder.CreateSphere("ss_Sonne",{diameter:55,segments:24},scene);
+sunSphere.position.copyFrom(SUN_POS); sunSphere.isPickable=false;
 const sunMat=new BABYLON.StandardMaterial("ss_sm",scene);
 sunMat.emissiveColor=new BABYLON.Color3(1,0.95,0.3); sunMat.disableLighting=true; sunSphere.material=sunMat;
 // Sonne-Glow
-const sunGlow=BABYLON.MeshBuilder.CreateSphere("ss_sg",{diameter:90,segments:12},scene);
-sunGlow.position.copyFrom(sunSphere.position); sunGlow.isPickable=false;
+const sunGlow=BABYLON.MeshBuilder.CreateSphere("ss_sg",{diameter:110,segments:12},scene);
+sunGlow.position.copyFrom(SUN_POS); sunGlow.isPickable=false;
 const sunGlowMat=new BABYLON.StandardMaterial("ss_sgm",scene);
-sunGlowMat.emissiveColor=new BABYLON.Color3(1,0.8,0.1); sunGlowMat.alpha=0.09; sunGlowMat.backFaceCulling=false; sunGlowMat.disableLighting=true; sunGlow.material=sunGlowMat;
+sunGlowMat.emissiveColor=new BABYLON.Color3(1,0.8,0.1); sunGlowMat.alpha=0.08;
+sunGlowMat.backFaceCulling=false; sunGlowMat.disableLighting=true; sunGlow.material=sunGlowMat;
 
-// Planeten
-SOLAR.slice(1).forEach(([name,distAU,scaledDist,diam,r,g,b,hasRing,ringD])=>{
-  const angle = PLANET_ANGLES[name] || 0;
-  // Planeten auf einer horizontalen Ebene (Y=EARTH_POS.y) um die Erde
-  const px = Math.cos(angle)*scaledDist;
-  const py = EARTH_POS.y + Math.sin(angle*0.3)*30; // leicht unterschiedliche Hoehe
-  const pz = Math.sin(angle)*scaledDist;
+// Sonne-Label
+(function(){
+  const lbl=BABYLON.MeshBuilder.CreatePlane("ssl_Sonne",{width:80,height:20},scene);
+  lbl.position.set(SUN_POS.x,SUN_POS.y+42,SUN_POS.z);
+  lbl.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL; lbl.isPickable=false;
+  const tex=new BABYLON.DynamicTexture("lt_Sonne",{width:256,height:64},scene);
+  tex.drawText("Sonne",null,44,"bold 26px Share Tech Mono","rgba(255,220,80,0.6)","transparent");
+  const m=new BABYLON.StandardMaterial("lm_Sonne",scene);
+  m.diffuseTexture=tex; m.emissiveColor=new BABYLON.Color3(1,1,1); m.disableLighting=true; m.hasAlpha=true; lbl.material=m;
+})();
 
+// Planeten und ihre Orbit-Linien
+PLANETS_DATA.forEach(([name,orbitR,diam,r,g,b,hasRing,ringD,startAngle])=>{
+  planetAngles[name]=startAngle;
+
+  if(name==="Erde"){
+    // Erde ist unser Ausstellungsort — kein eigenes Mesh, nur Orbit-Linie
+    const N=160,lines=[];
+    for(let i=0;i<N;i+=2){
+      const a0=(i/N)*Math.PI*2, a1=((i+1)/N)*Math.PI*2;
+      lines.push([
+        new BABYLON.Vector3(SUN_POS.x+Math.cos(a0)*orbitR, SUN_POS.y, SUN_POS.z+Math.sin(a0)*orbitR),
+        new BABYLON.Vector3(SUN_POS.x+Math.cos(a1)*orbitR, SUN_POS.y, SUN_POS.z+Math.sin(a1)*orbitR)
+      ]);
+    }
+    const ol=BABYLON.MeshBuilder.CreateLineSystem("ssol_Erde",{lines},scene);
+    ol.color=new BABYLON.Color3(0.3,0.5,0.8); ol.alpha=0.3; ol.isPickable=false;
+    return;
+  }
+
+  // Planet-Mesh
   const s=BABYLON.MeshBuilder.CreateSphere("ss_"+name,{diameter:diam,segments:20},scene);
+  const px=SUN_POS.x+Math.cos(startAngle)*orbitR;
+  const py=SUN_POS.y+Math.sin(startAngle*0.1)*15; // leichte Inklination
+  const pz=SUN_POS.z+Math.sin(startAngle)*orbitR;
   s.position.set(px,py,pz); s.isPickable=false;
   const mat=new BABYLON.StandardMaterial("ssm_"+name,scene);
   mat.diffuseColor=new BABYLON.Color3(r,g,b);
+  mat.emissiveColor=new BABYLON.Color3(r*0.04,g*0.04,b*0.04);
   mat.specularColor=new BABYLON.Color3(0.05,0.05,0.05);
-  if(name==="Jupiter"||name==="Saturn") mat.emissiveColor=new BABYLON.Color3(r*0.06,g*0.06,b*0.06);
   s.material=mat;
+  planetMeshes[name]=s;
 
   // Saturn-Ring
   if(hasRing){
-    const ring=BABYLON.MeshBuilder.CreateTorus("ss_r_"+name,{diameter:ringD,thickness:0.6,tessellation:64},scene);
-    ring.position.set(px,py,pz); ring.rotation.x=0.4; ring.isPickable=false;
+    const ring=BABYLON.MeshBuilder.CreateTorus("ss_r_"+name,{diameter:ringD,thickness:0.8,tessellation:64},scene);
+    ring.position.set(px,py,pz); ring.rotation.x=0.45; ring.isPickable=false;
     const rm=new BABYLON.StandardMaterial("ss_rm_"+name,scene);
-    rm.diffuseColor=new BABYLON.Color3(0.85,0.78,0.6); rm.alpha=0.72; rm.backFaceCulling=false; ring.material=rm;
+    rm.diffuseColor=new BABYLON.Color3(0.85,0.78,0.6); rm.alpha=0.7; rm.backFaceCulling=false; ring.material=rm;
+    planetRings[name]=ring;
   }
 
-  // Planet-Orbit-Linie um Erde (elliptisch angedeutet)
-  const N=160,lines2=[];
+  // Orbit-Linie um Sonne
+  const N=160,lines=[];
   for(let i=0;i<N;i+=2){
-    const a0=(i/N)*Math.PI*2,a1=((i+1)/N)*Math.PI*2;
-    lines2.push([
-      new BABYLON.Vector3(EARTH_POS.x+Math.cos(a0)*scaledDist, EARTH_POS.y, EARTH_POS.z+Math.sin(a0)*scaledDist),
-      new BABYLON.Vector3(EARTH_POS.x+Math.cos(a1)*scaledDist, EARTH_POS.y, EARTH_POS.z+Math.sin(a1)*scaledDist)
+    const a0=(i/N)*Math.PI*2, a1=((i+1)/N)*Math.PI*2;
+    lines.push([
+      new BABYLON.Vector3(SUN_POS.x+Math.cos(a0)*orbitR, SUN_POS.y, SUN_POS.z+Math.sin(a0)*orbitR),
+      new BABYLON.Vector3(SUN_POS.x+Math.cos(a1)*orbitR, SUN_POS.y, SUN_POS.z+Math.sin(a1)*orbitR)
     ]);
   }
-  const ol=BABYLON.MeshBuilder.CreateLineSystem("ssol_"+name,{lines:lines2},scene);
-  ol.color=new BABYLON.Color3(0.28,0.28,0.3); ol.alpha=0.25; ol.isPickable=false;
+  const ol=BABYLON.MeshBuilder.CreateLineSystem("ssol_"+name,{lines},scene);
+  ol.color=new BABYLON.Color3(0.28,0.28,0.32); ol.alpha=0.22; ol.isPickable=false;
 
-  // Name-Label
-  const lbl=BABYLON.MeshBuilder.CreatePlane("ssl_"+name,{width:diam*2.5,height:diam*0.65},scene);
-  lbl.position.set(px,py+diam*0.7+0.4,pz); lbl.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL; lbl.isPickable=false;
+  // Label
+  const lbl=BABYLON.MeshBuilder.CreatePlane("ssl_"+name,{width:diam*3,height:diam*0.8},scene);
+  lbl.position.set(px,py+diam*0.7+1,pz); lbl.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL; lbl.isPickable=false;
   const ltex=new BABYLON.DynamicTexture("lt_"+name,{width:256,height:64},scene);
-  ltex.drawText(name,null,44,"bold 26px Share Tech Mono","rgba(255,255,255,0.45)","transparent");
+  ltex.drawText(name,null,44,"bold 26px Share Tech Mono","rgba(255,255,255,0.42)","transparent");
   const lm=new BABYLON.StandardMaterial("lm_"+name,scene);
   lm.diffuseTexture=ltex; lm.emissiveColor=new BABYLON.Color3(1,1,1); lm.disableLighting=true; lm.hasAlpha=true; lbl.material=lm;
+  planetLabels[name]={lbl,diam,orbitR};
 });
 
 // ── RAUMSCHIFF ──
@@ -562,11 +602,14 @@ BABYLON.SceneLoader.ImportMesh("",BASE_URL,"spaceship01.obj",scene,function(mesh
 });
 
 // ── 9 FOTO-PLANES ──
+// Szenen-Ambient erhöhen damit Diffuse-Texturen sichtbar sind
+scene.ambientColor=new BABYLON.Color3(0.6,0.6,0.6);
+
 const artMeshes={};
 function buildPlane(art){
   const pos=new BABYLON.Vector3(...art.pos);
 
-  // Rahmen
+  // Weißer Rahmen
   const frame=BABYLON.MeshBuilder.CreateBox(art.id+"_fr",{width:4.7,height:3.5,depth:0.10},scene);
   frame.position.copyFrom(pos);
   frame.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
@@ -585,19 +628,19 @@ function buildPlane(art){
   mesh.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
 
   const pmat=new BABYLON.StandardMaterial(art.id+"_m",scene);
-  pmat.disableLighting=true;
   pmat.backFaceCulling=false;
-  pmat.diffuseColor=new BABYLON.Color3(0,0,0);
+  // disableLighting=true + emissiveTexture = Bild immer sichtbar, unabhängig von Licht
+  pmat.disableLighting=true;
 
   if(art.image){
     const imgUrl=art.image.startsWith("http")?art.image:BASE_URL+art.image;
-    // Synchron zuweisen — Babylon lädt async aber die Referenz muss sofort gesetzt sein
-    const tex=new BABYLON.Texture(imgUrl,scene);
-    tex.hasAlpha=false;
+    const tex=new BABYLON.Texture(imgUrl,scene,true,false,BABYLON.Texture.BILINEAR_SAMPLINGMODE);
     pmat.emissiveTexture=tex;
     pmat.emissiveColor=new BABYLON.Color3(1,1,1);
+    pmat.diffuseColor=new BABYLON.Color3(0,0,0);
   } else {
     pmat.emissiveColor=new BABYLON.Color3(0.38,0.38,0.40);
+    pmat.diffuseColor=new BABYLON.Color3(0,0,0);
   }
 
   mesh.material=pmat;
@@ -869,6 +912,28 @@ scene.registerBeforeRender(()=>{
   if(outlineMesh&&selectedMesh){outlineMesh.rotation.copyFrom(selectedMesh.rotation);outlineMesh.position.copyFrom(selectedMesh.position);}
   if(outlineWire&&selectedMesh){outlineWire.rotation.copyFrom(selectedMesh.rotation);outlineWire.position.copyFrom(selectedMesh.position);}
   // Erde + Wolken rotieren
+  // Planeten kreisen um Sonne
+  Object.entries(planetAngles).forEach(([name,_])=>{
+    if(name==="Erde") return;
+    const data=PLANETS_DATA.find(d=>d[0]===name);
+    if(!data) return;
+    const [,orbitR,diam,,,,hasRing]=data;
+    // Geschwindigkeit: innere Planeten schneller (Keplersch)
+    const speed=0.00008/(Math.sqrt(orbitR/70));
+    planetAngles[name]+=speed;
+    const a=planetAngles[name];
+    const nx=SUN_POS.x+Math.cos(a)*orbitR;
+    const ny=SUN_POS.y+Math.sin(a*0.1)*15;
+    const nz=SUN_POS.z+Math.sin(a)*orbitR;
+    if(planetMeshes[name]){
+      planetMeshes[name].position.set(nx,ny,nz);
+      planetMeshes[name].rotation.y+=0.005;
+    }
+    if(planetRings[name]) planetRings[name].position.set(nx,ny,nz);
+    if(planetLabels[name]){
+      planetLabels[name].lbl.position.set(nx,ny+diam*0.7+1,nz);
+    }
+  });
   earth.rotation.y+=0.00008; atmo.rotation.y+=0.00006;
   // Mond umkreist Erde (ein Umlauf ca. 27 Tage — hier stark beschleunigt für Sichtbarkeit)
   moonAngle+=0.0003;
