@@ -566,19 +566,22 @@ function buildPlane(art){
       true,  // invertY=true
       BABYLON.Texture.TRILINEAR_SAMPLINGMODE
     );
-    // emissiveColor startet schwarz → kein Weiß-Flicker
-    // wird auf (1,1,1) gesetzt sobald Textur isReady()
-    pmat.emissiveColor=new BABYLON.Color3(0,0,0);
-    pmat.emissiveTexture=tex;
-    // Observer: sobald Textur geladen, emissiveColor auf weiß
-    const checkTex=()=>{
-      if(tex.isReady()){
-        pmat.emissiveColor=new BABYLON.Color3(1,1,1);
-      } else {
-        setTimeout(checkTex,100);
-      }
+    // Bild via HTML Image Element laden → DynamicTexture → kein XHR/CORS Problem
+    pmat.emissiveColor=new BABYLON.Color3(0.35,0.35,0.37); // grau bis geladen
+    pmat.diffuseColor=new BABYLON.Color3(0,0,0);
+    const htmlImg=new Image();
+    htmlImg.crossOrigin="anonymous";
+    htmlImg.onload=function(){
+      // DynamicTexture: Canvas-basiert, kein XHR, kein CORS-Problem
+      const dt=new BABYLON.DynamicTexture(art.id+"_dt",{width:htmlImg.naturalWidth||512,height:htmlImg.naturalHeight||512},scene,false);
+      const ctx=dt.getContext();
+      ctx.drawImage(htmlImg,0,0,dt.getSize().width,dt.getSize().height);
+      dt.update();
+      pmat.emissiveTexture=dt;
+      pmat.emissiveColor=new BABYLON.Color3(1,1,1);
     };
-    checkTex();
+    htmlImg.onerror=function(){ console.warn("Bild nicht geladen:",imgUrl); };
+    htmlImg.src=imgUrl;
   } else {
     pmat.diffuseColor=new BABYLON.Color3(0,0,0);
     pmat.emissiveColor=new BABYLON.Color3(0.38,0.38,0.40);
