@@ -96,16 +96,6 @@ canvas { width:100vw; height:100vh; display:block; touch-action:none; }
 <canvas id="renderCanvas"></canvas>
 <canvas id="portalCanvas"></canvas>
 
-<!-- DEBUG: Bild-Test — wird nach 5s automatisch ausgeblendet -->
-<div id="imgtest" style="position:fixed;top:10px;right:10px;z-index:999;background:rgba(0,0,0,0.8);padding:8px;font-family:monospace;font-size:10px;color:#fff;max-width:220px;">
-  <div style="margin-bottom:4px;opacity:0.5;">BILD-TEST (verschwindet nach 5s)</div>
-  <img id="imgtest-img" src="/space/img/flyinghammer.jpg" crossorigin="anonymous"
-    style="width:200px;height:auto;display:block;border:1px solid rgba(255,255,255,0.2);"
-    onload="this.nextSibling.textContent='✓ Bild geladen'"
-    onerror="this.nextSibling.textContent='✗ Bild FEHLER — URL falsch?'">
-  <div style="margin-top:4px;color:#0f0;">Lädt...</div>
-</div>
-<script>setTimeout(()=>{const t=document.getElementById('imgtest');if(t)t.remove();},5000);</script>
 <div id="loading">
   <h1>Schwerpunkt Gravitation</h1>
   <div id="loading-sub">Focus on Gravity — Virtuelle Ausstellung 2027</div>
@@ -528,27 +518,22 @@ BABYLON.SceneLoader.ImportMesh("",BASE_URL,"spaceship01.obj",scene,function(mesh
 });
 
 // ── 9 FOTO-PLANES ──
+// Strategie: versteckte <img> Tags im DOM, dann HtmlElementTexture in Babylon.
+// Das sind exakt dieselben Bilder wie im Info-Panel — kein XHR, kein CORS.
 const artMeshes={};
 
-function loadImageAsTexture(url, scene, onReady){
-  // Lädt Bild via HTML Image (kein XHR), zeichnet auf Power-of-2 Canvas,
-  // erstellt DynamicTexture → funktioniert auf GitHub Pages ohne CORS-Probleme
-  const img=new Image();
+// Versteckte Bild-Container im DOM anlegen (einmalig)
+const imgCache={};
+ARTWORKS.forEach(art=>{
+  if(!art.image) return;
+  const imgUrl=art.image.startsWith("http")?art.image:BASE_URL+art.image;
+  const img=document.createElement('img');
   img.crossOrigin="anonymous";
-  img.onload=function(){
-    // Nächste Power-of-2 Größe berechnen
-    function nextPow2(n){ let p=1; while(p<n) p*=2; return p; }
-    const w=nextPow2(Math.min(img.naturalWidth||512, 2048));
-    const h=nextPow2(Math.min(img.naturalHeight||512, 2048));
-    const dt=new BABYLON.DynamicTexture("dt_"+Date.now(),{width:w,height:h},scene,true);
-    const ctx=dt.getContext();
-    ctx.drawImage(img,0,0,w,h);
-    dt.update(false);
-    onReady(dt);
-  };
-  img.onerror=function(){ console.warn("Bild nicht erreichbar:",url); onReady(null); };
-  img.src=url;
-}
+  img.style.cssText="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;top:-9999px";
+  img.src=imgUrl;
+  document.body.appendChild(img);
+  imgCache[art.id]=img;
+});
 
 function buildPlane(art){
   const pos=new BABYLON.Vector3(...art.pos);
@@ -579,14 +564,35 @@ function buildPlane(art){
   pmat.emissiveColor=new BABYLON.Color3(0.3,0.3,0.32);
   mesh.material=pmat;
 
-  if(art.image){
-    const imgUrl=art.image.startsWith("http")?art.image:BASE_URL+art.image;
-    loadImageAsTexture(imgUrl, scene, function(dt){
-      if(dt){
+  if(art.image && imgCache[art.id]){
+    const imgEl=imgCache[art.id];
+    const applyTex=()=>{
+      try{
+        const tex=new BABYLON.HtmlElementTexture(art.id+"_tex",imgEl,{
+          scene:scene,
+          generateMipMaps:false,
+          samplingMode:BABYLON.Texture.BILINEAR_SAMPLINGMODE
+        });
+        pmat.emissiveTexture=tex;
+        pmat.emissiveColor=new BABYLON.Color3(1,1,1);
+      }catch(e){
+        // HtmlElementTexture nicht verfügbar → DynamicTexture Fallback
+        const canvas=document.createElement('canvas');
+        canvas.width=imgEl.naturalWidth||512;
+        canvas.height=imgEl.naturalHeight||512;
+        canvas.getContext('2d').drawImage(imgEl,0,0);
+        const dt=new BABYLON.DynamicTexture(art.id+"_dt",{width:canvas.width,height:canvas.height},scene,false);
+        dt.getContext().drawImage(imgEl,0,0,canvas.width,canvas.height);
+        dt.update(false);
         pmat.emissiveTexture=dt;
         pmat.emissiveColor=new BABYLON.Color3(1,1,1);
       }
-    });
+    };
+    if(imgEl.complete && imgEl.naturalWidth>0){
+      applyTex();
+    } else {
+      imgEl.addEventListener('load', applyTex, {once:true});
+    }
   }
 
   mesh.metadata={type:"artwork",data:art,frame};
