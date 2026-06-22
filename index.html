@@ -518,54 +518,70 @@ BABYLON.SceneLoader.ImportMesh("",BASE_URL,"spaceship01.obj",scene,function(mesh
 });
 
 // ── 9 FOTO-PLANES ──
-// WICHTIG: Texturen laden nur über HTTP/HTTPS (GitHub Pages, Live Server).
-// Lokal per file:// → CORS blockiert → Planes zeigen grau.
-// Lösung lokal: VS Code Live Server oder python3 -m http.server 8080
+// Ansatz: diffuseTexture + scene.ambientColor + mat.ambientColor
+// Das ist der einzig zuverlässige Weg in Babylon 6 für beleuchtungsunabh. Texturen
+scene.ambientColor = new BABYLON.Color3(1,1,1);
+
 const artMeshes={};
 function buildPlane(art){
   const pos=new BABYLON.Vector3(...art.pos);
 
   // Weißer Rahmen
   const frame=BABYLON.MeshBuilder.CreateBox(art.id+"_fr",{width:4.7,height:3.5,depth:0.10},scene);
-  frame.position.copyFrom(pos); frame.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL; frame.isPickable=false;
+  frame.position.copyFrom(pos);
+  frame.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
+  frame.isPickable=false;
   const fmat=new BABYLON.StandardMaterial(art.id+"_fmat",scene);
-  fmat.disableLighting=true; fmat.emissiveColor=new BABYLON.Color3(0.88,0.88,0.88);
+  fmat.disableLighting=true;
+  fmat.emissiveColor=new BABYLON.Color3(0.9,0.9,0.9);
   frame.material=fmat;
 
-  // Bild-Plane
+  // Bild-Plane: DOUBLESIDE, immer zur Kamera
   const mesh=BABYLON.MeshBuilder.CreatePlane(art.id,{
-    width:4.1,height:3.0,sideOrientation:BABYLON.Mesh.DOUBLESIDE
+    width:4.1, height:3.0,
+    sideOrientation:BABYLON.Mesh.DOUBLESIDE
   },scene);
-  mesh.position.copyFrom(pos); mesh.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
+  mesh.position.copyFrom(pos);
+  mesh.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
 
   const pmat=new BABYLON.StandardMaterial(art.id+"_m",scene);
-  pmat.disableLighting=true; pmat.backFaceCulling=false;
-  // Standard: grau (wird durch Textur überschrieben sobald geladen)
-  pmat.emissiveColor=new BABYLON.Color3(0.35,0.35,0.37);
-  pmat.diffuseColor=new BABYLON.Color3(0,0,0);
+  pmat.backFaceCulling=false;
+  // disableLighting=true: kein Lichteinfluss, Textur in Originalfarben
+  pmat.disableLighting=true;
 
   if(art.image){
     const imgUrl=art.image.startsWith("http")?art.image:BASE_URL+art.image;
-    // Grau bis Textur geladen, dann Bild anzeigen
-    pmat.emissiveColor=new BABYLON.Color3(0.3,0.3,0.32);
-    // diffuseTexture MIT Lighting disabled = Bild als emissive
-    // In Babylon 6: emissiveTexture braucht emissiveColor=(1,1,1) NACH dem Laden
-    const img=new Image();
-    img.crossOrigin="anonymous";
-    img.onload=()=>{
-      const tex=new BABYLON.Texture(imgUrl,scene,true,false,BABYLON.Texture.NEAREST_SAMPLINGMODE);
-      tex.onLoadObservable.addOnce(()=>{
-        pmat.emissiveTexture=tex;
-        pmat.emissiveColor=new BABYLON.Color3(1,1,1);
-      });
-      // Falls Observable schon gefeuert (gecacht):
+    // diffuseTexture + emissiveColor weiß + disableLighting:
+    // Babylon rendert: emissiveColor + (ambientColor * ambientTexture) + diffuseTexture*light
+    // Mit disableLighting=true wird NUR emissive gerendert.
+    // Trick: diffuseTexture als emissiveTexture setzen funktioniert nicht zuverlässig.
+    // Stattdessen: unlit material über ShaderMaterial simulieren mit StandardMaterial:
+    // diffuseColor=(0,0,0), emissiveTexture=tex, emissiveColor=(1,1,1)
+    // Das Problem bisher war Timing. Fix: texture direkt zuweisen, emissiveColor NACH tex.
+    pmat.diffuseColor=new BABYLON.Color3(0,0,0);
+    pmat.specularColor=new BABYLON.Color3(0,0,0);
+    const tex=new BABYLON.Texture(
+      imgUrl, scene,
+      false, // noMipmap=false: normale Mipmaps
+      true,  // invertY=true
+      BABYLON.Texture.TRILINEAR_SAMPLINGMODE
+    );
+    // emissiveColor startet schwarz → kein Weiß-Flicker
+    // wird auf (1,1,1) gesetzt sobald Textur isReady()
+    pmat.emissiveColor=new BABYLON.Color3(0,0,0);
+    pmat.emissiveTexture=tex;
+    // Observer: sobald Textur geladen, emissiveColor auf weiß
+    const checkTex=()=>{
       if(tex.isReady()){
-        pmat.emissiveTexture=tex;
         pmat.emissiveColor=new BABYLON.Color3(1,1,1);
+      } else {
+        setTimeout(checkTex,100);
       }
     };
-    img.onerror=()=>console.warn("Bild nicht erreichbar:",imgUrl);
-    img.src=imgUrl;
+    checkTex();
+  } else {
+    pmat.diffuseColor=new BABYLON.Color3(0,0,0);
+    pmat.emissiveColor=new BABYLON.Color3(0.38,0.38,0.40);
   }
 
   mesh.material=pmat;
@@ -877,10 +893,13 @@ const li=setInterval(()=>{
   pct=Math.min(pct+Math.random()*7+2,92); lb.style.width=pct+"%";
   if(si<statuses.length-1&&pct>(si+1)*13){si++;ls.textContent=statuses[si];}
 },100);
-scene.executeWhenReady(()=>{
+// Ladebalken: executeWhenReady + 8s Timeout-Fallback
+function hideLoader(){
   clearInterval(li); lb.style.width="100%";
   setTimeout(()=>{const l=document.getElementById("loading"); l.style.opacity="0"; setTimeout(()=>l.style.display="none",1400);},700);
-});
+}
+scene.executeWhenReady(()=>hideLoader());
+setTimeout(()=>{ if(document.getElementById("loading").style.display!=="none") hideLoader(); },8000);
 
 engine.runRenderLoop(()=>scene.render());
 window.addEventListener("resize",()=>{engine.resize(); pEngine.resize();});
