@@ -300,41 +300,44 @@ BABYLON.SceneLoader.ImportMesh("",BASE_URL,"spaceship01.obj",scene,function(mesh
 },null,function(s,msg){console.warn("OBJ:",msg);const fb=BABYLON.MeshBuilder.CreateBox("shipFB",{width:10,height:2,depth:30},scene);fb.position.set(0,0,0);fb.isPickable=false;const fm=new BABYLON.StandardMaterial("sfm",scene);fm.diffuseColor=new BABYLON.Color3(0.55,0.57,0.62);fm.emissiveColor=new BABYLON.Color3(0.04,0.04,0.05);fb.material=fm;});
 
 // ── 9 FOTO-PLANES ──
-// Textur lädt korrekt (bestätigt via Konsole).
-// Problem war renderingGroupId-Konflikt. Fix: beide Planes in Gruppe 1,
-// Hintergrund-Plane mit zOffset-Trick damit Bildplane davor bleibt.
+scene.ambientColor = new BABYLON.Color3(1,1,1);
+
 const artMeshes={};
 function buildPlane(art){
   const pos=new BABYLON.Vector3(...art.pos);
 
-  // Weißer Rahmen: Plane in renderingGroup 1
+  // Rahmen: weiße Plane, etwas größer
   const bg=BABYLON.MeshBuilder.CreatePlane(art.id+"_bg",{
     width:4.5,height:3.3,sideOrientation:BABYLON.Mesh.DOUBLESIDE
   },scene);
   bg.position.copyFrom(pos);
   bg.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
   bg.isPickable=false;
-  bg.renderingGroupId=1;
+  // renderingGroupId=0 = normal im Szenenraum, hinter/vor anderen Objekten je nach Z
+  bg.renderingGroupId=0;
   const bgmat=new BABYLON.StandardMaterial(art.id+"_bgm",scene);
   bgmat.disableLighting=true;
-  bgmat.emissiveColor=new BABYLON.Color3(0.9,0.9,0.9);
+  bgmat.emissiveColor=new BABYLON.Color3(0.85,0.85,0.85);
   bgmat.backFaceCulling=false;
   bg.material=bgmat;
 
-  // Bildplane: renderingGroup 2 → wird NACH bg gerendert
+  // Bildplane: identische Position wie bg, aber leicht davor gepusht via polygonOffset
   const mesh=BABYLON.MeshBuilder.CreatePlane(art.id,{
     width:4.1,height:2.9,sideOrientation:BABYLON.Mesh.DOUBLESIDE
   },scene);
   mesh.position.copyFrom(pos);
   mesh.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
-  mesh.renderingGroupId=2;
+  mesh.renderingGroupId=0;
 
   const pmat=new BABYLON.StandardMaterial(art.id+"_m",scene);
-  pmat.disableLighting=true;
   pmat.backFaceCulling=false;
+  pmat.ambientColor=new BABYLON.Color3(1,1,1);
   pmat.diffuseColor=new BABYLON.Color3(0,0,0);
   pmat.specularColor=new BABYLON.Color3(0,0,0);
-  pmat.emissiveColor=new BABYLON.Color3(0.32,0.32,0.34);
+  pmat.emissiveColor=new BABYLON.Color3(0,0,0);
+  // polygonOffset: verschiebt Bildplane im Depth-Buffer leicht nach vorne
+  // → verhindert Z-fighting mit dem Rahmen, ohne renderingGroup zu ändern
+  pmat.zOffset=-2;
   mesh.material=pmat;
 
   if(art.image){
@@ -348,8 +351,7 @@ function buildPlane(art){
       ctx2d.drawImage(img,0,0,512,512);
       const dt=new BABYLON.DynamicTexture(art.id+"_tex",offscreen,scene,false);
       dt.update(false);
-      pmat.emissiveTexture=dt;
-      pmat.emissiveColor=new BABYLON.Color3(1,1,1);
+      pmat.ambientTexture=dt;
     };
     img.onerror=function(){ console.warn("Fehler:", imgUrl); };
     img.src=imgUrl;
