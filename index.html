@@ -116,7 +116,7 @@ canvas { width:100vw; height:100vh; display:block; touch-action:none; }
 <div id="hud-tl" class="hud-box">
   <h1>Schwerpunkt Gravitation</h1>
   <div id="hud-tl-sub">Virtuelle Ausstellung · 2027</div>
-  <div id="zone-label">Zone: <span id="zone-name-val">LEO / ISS</span></div>
+  <div id="zone-label">Zone: <span id="zone-name-val">SPACE/ ISS</span></div>
   <div id="zone-bar"><div id="zone-bar-fill"></div></div>
 </div>
 <div id="hud-tr" class="hud-box">
@@ -162,8 +162,8 @@ canvas { width:100vw; height:100vh; display:block; touch-action:none; }
 </div>
 
 <div id="portal-hud">
-  <h2>Freier Fall</h2>
-  <p>Spekulativer Ausstellungsraum · OAF 2027</p>
+  <h2>Game Artwork 01</h2>
+  <p>Spekulativer Ausstellungsraum · Angewandte 2027</p>
 </div>
 <button id="portal-back-btn">Zuruck zur Ausstellung</button>
 <div id="portal-transition"></div>
@@ -202,40 +202,40 @@ const LOREM = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do e
 // ═══════════════════════════════════════════════
 const ARTWORKS = [
   { id:"W-001", title:"Flying Hammer",               artist:"Jean Luc Vilmouth",
-    year:"1981", medium:"Skulptur / Objekt",           orbit:"Schwerelosigkeit",        cat:"Kinetische Skulptur",
-    statement:null, url:"#", image:null,
+    year:"1981", medium:"Skulptur / Objekt",           orbit:"Schwerelosigkeit",        cat:"Weltraumskulptur",
+    statement:null, url:"#", image:"img/flyinghammer.jpg",
     pos:[ 22,  5,  8], rot:[0,    0.85, 0.1 ] },
   { id:"W-002", title:"Cosmic Dancer",               artist:"Arthur Woods",
-    year:"1991", medium:"Skulptur, Aluminium",         orbit:"MIR Raumstation 1993",    cat:"Weltraumskulptur",
-    statement:null, url:"#", image:null,
+    year:"1991", medium:"Skulptur / Objekt",         orbit:"MIR Raumstation 1993",    cat:"Weltraumskulptur",
+    statement:null, url:"#", image:"img/cosmicdancer.jpg",
     pos:[-20,  3, -5], rot:[0.08,-0.9,  0   ] },
   { id:"W-003", title:"Space 2",                     artist:"Space Invader",
     year:"2015", medium:"Mosaik, Keramik",             orbit:"ISS, 400 km",             cat:"Installation",
-    statement:null, url:"#", image:null,
+    statement:null, url:"#", image:"spaceinvader.jpg",
     pos:[  6,-12, 14], rot:[-0.1,  0.5, 0.08] },
   { id:"W-004", title:"In Bloom #1",                 artist:"Azuma Makoto",
     year:"2014", medium:"Blumen, Fotografie",          orbit:"Stratosphaere",           cat:"Vergaengliche Skulptur",
-    statement:null, url:"#", image:null,
+    statement:null, url:"#", image:"img/inbloom.jpg",
     pos:[ 30, 10, 18], rot:[0.05,-1.1,  0   ] },
   { id:"W-005", title:"ENOCH",                       artist:"Tavares Strachan",
-    year:"2018", medium:"Goldene Kapsel, Raumfahrt",   orbit:"Erdorbit",               cat:"Konzeptarbeit",
-    statement:null, url:"#", image:null,
+    year:"2018", medium:"Stellit",   orbit:"Erdorbit",               cat:"Konzeptarbeit",
+    statement:null, url:"#", image:"img/enoch.png",
     pos:[-26, -4, 25], rot:[0.1,   0.95,-0.1 ] },
   { id:"W-006", title:"The Absence of Nothingness",  artist:"Payer Gabriel",
-    year:"2022", medium:"Video, Installation",         orbit:"Simulierter Orbit",       cat:"Videoinstallation",
-    statement:null, url:"#", image:null,
+    year:"2022", medium:"Painting",         orbit:"Simulierter Orbit",       cat:"Gemälde",
+    statement:null, url:"#", image:"img/theabscenceofnothingness.jpg",
     pos:[ 10,-15, 35], rot:[-0.12,  0.6, 0   ] },
   { id:"W-007", title:"Holding Air",                 artist:"Nahum",
-    year:"2015", medium:"Performance, Atemluft",       orbit:"Parabelflug",             cat:"Performance / Objekt",
-    statement:null, url:"#", image:null,
+    year:"2015", medium:"Performance",       orbit:"Parabelflug",             cat:"Performance / Objekt",
+    statement:null, url:"#", image:"img/holdingair.jpg",
     pos:[-18, 14, 42], rot:[0.18,-0.75, 0.1 ] },
   { id:"W-008", title:"Reinventing the Spindle",     artist:"Ebru Kurbak",
     year:"2019–", medium:"Textil, Spinnmaschine",     orbit:"Konzipiert fuer Orbit",   cat:"Textile Skulptur",
-    statement:null, url:"#", image:null,
+    statement:null, url:"#", image:"img/reinventingthespindle.jpg",
     pos:[ 24, 16, 80], rot:[0,   -1.3,  0.1 ] },
   { id:"W-009", title:"Water Is My Eye",             artist:"Bernd Oppl",
     year:"2024", medium:"4K Video",                   orbit:"Spekulativ / Orbit",      cat:"Videoarbeit",
-    statement:null, url:"#", image:null,
+    statement:null, url:"#", image:"img/waterismyeye.jpg",
     pos:[-16, -7,105], rot:[0.1,   0.8,  0   ] },
 ];
 
@@ -266,7 +266,7 @@ const SCULPTURES = [
 //    Planeten log-skaliert fuer Uebersichtlichkeit
 //    Planetengroessen leicht uebertrieben (sonst unsichtbar)
 // ═══════════════════════════════════════════════
-const EARTH_POS = new BABYLON.Vector3(0, -320, 0); // Erde unter der Ausstellung
+const EARTH_POS = new BABYLON.Vector3(0, -420, 0); // Erde unter der Ausstellung
 const SUN_DIST  = 800;
 
 // [name, dist_AU, log_scale_dist, diameter, r, g, b, hasRing, ringD]
@@ -572,9 +572,9 @@ SCULPTURES.forEach(buildSculpture);
 
 // ── PORTALE ──
 const PORTALS=[
-  { id:"P-001", title:"Freier Fall", isWorld:true,  pos:[-12, 5, 20], color:[0.95,0.28,0.1], radius:2.3 },
-  { id:"P-002", title:"Invertierte Gravitation",    isWorld:false, pos:[ 20,-4, 50], color:[0.3,0.8,0.5], radius:2.5 },
-  { id:"P-003", title:"Nullpunkt",                  isWorld:false, pos:[  0, 0,145], color:[0.7,0.5,1.0], radius:3.0 },
+  { id:"P-001", title:"Game Installation 01", isWorld:true,  pos:[-12, 5, 20], color:[0.95,0.28,0.1], radius:2.3 },
+  { id:"P-002", title:"Game Installation 02",    isWorld:false, pos:[ 20,-4, 50], color:[0.3,0.8,0.5], radius:2.5 },
+  { id:"P-003", title:"Game Installation 03",                  isWorld:false, pos:[  0, 0,145], color:[0.7,0.5,1.0], radius:3.0 },
 ];
 const portalMeshes=[];
 PORTALS.forEach(p=>{
@@ -682,7 +682,7 @@ function cycleZone(){
 }
 
 // ══════════════════════════════════════════════════════════
-//  PORTAL-WELT: "FREIER FALL" — separate Babylon Engine
+//  PORTAL-WELT: "Game Installation 01" — separate Babylon Engine
 //  Rote Atmosphaere, Nebula, Wurmloch, fallende Partikel
 // ══════════════════════════════════════════════════════════
 const portalCanvas=document.getElementById("portalCanvas");
