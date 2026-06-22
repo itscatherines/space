@@ -162,10 +162,10 @@ canvas { width:100vw; height:100vh; display:block; touch-action:none; }
 </div>
 
 <div id="portal-hud">
-  <h2>Game Installation 01</h2>
-  <p>Spekulativer Ausstellungsraum ·  2027</p>
+  <h2>Freier Fall</h2>
+  <p>Spekulativer Ausstellungsraum · OAF 2027</p>
 </div>
-<button id="portal-back-btn">Zurueck zur Ausstellung</button>
+<button id="portal-back-btn">Zuruck zur Ausstellung</button>
 <div id="portal-transition"></div>
 <div id="zflash"></div>
 
@@ -376,58 +376,40 @@ const earth=BABYLON.MeshBuilder.CreateSphere("earth",{diameter:480,segments:128}
 earth.position.copyFrom(EARTH_POS); earth.isPickable=false;
 
 const earthMat=new BABYLON.StandardMaterial("earthMat",scene);
-
-// Diffuse: NASA Blue Marble
 earthMat.diffuseTexture=new BABYLON.Texture(
   "https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg",
   scene,false,false,BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
   null,()=>{ earthMat.diffuseColor=new BABYLON.Color3(0.07,0.2,0.5); }
 );
-// Bump Map: Gebirgsrelief
-earthMat.bumpTexture=new BABYLON.Texture(
-  "https://unpkg.com/three-globe/example/img/earth-topology.png",
-  scene,false,false,BABYLON.Texture.TRILINEAR_SAMPLINGMODE
-);
-earthMat.bumpTexture.level=1.2;
-// Specular: Ozeane glänzen
-earthMat.specularColor=new BABYLON.Color3(0.3,0.4,0.6);
-earthMat.specularPower=28;
-// KEIN emissiveTexture — das war die Ursache für die pinken Farben
+earthMat.specularColor=new BABYLON.Color3(0.15,0.2,0.35);
+earthMat.specularPower=20;
 earthMat.emissiveColor=new BABYLON.Color3(0,0,0);
 earth.material=earthMat;
 
-// Schicht 2: Wolken (separate rotierende Sphere, etwas größer)
-const clouds=BABYLON.MeshBuilder.CreateSphere("clouds",{diameter:488,segments:64},scene);
+// Wolken — kein emissive, nur leicht transparent
+const clouds=BABYLON.MeshBuilder.CreateSphere("clouds",{diameter:490,segments:48},scene);
 clouds.position.copyFrom(EARTH_POS); clouds.isPickable=false;
 const cloudMat=new BABYLON.StandardMaterial("cloudMat",scene);
 cloudMat.diffuseTexture=new BABYLON.Texture(
   "https://unpkg.com/three-globe/example/img/earth-clouds.png",
-  scene,false,false,BABYLON.Texture.TRILINEAR_SAMPLINGMODE
+  scene,false,false,BABYLON.Texture.BILINEAR_SAMPLINGMODE
 );
 cloudMat.diffuseTexture.hasAlpha=true;
 cloudMat.useAlphaFromDiffuseTexture=true;
-cloudMat.emissiveColor=new BABYLON.Color3(0.92,0.92,0.92);
-cloudMat.alpha=0.38; cloudMat.backFaceCulling=false;
+cloudMat.alpha=0.55;
+cloudMat.backFaceCulling=false;
 clouds.material=cloudMat;
 
-// Schicht 3: Atmosphären-Glow
-const atmo=BABYLON.MeshBuilder.CreateSphere("atmo",{diameter:500,segments:32},scene);
+// Atmosphäre — nur blauer Saum, kein weiteres Layer
+const atmo=BABYLON.MeshBuilder.CreateSphere("atmo",{diameter:504,segments:24},scene);
 atmo.position.copyFrom(EARTH_POS); atmo.isPickable=false;
 const atmoMat=new BABYLON.StandardMaterial("atmoMat",scene);
-atmoMat.diffuseColor=new BABYLON.Color3(0,0,0);      // kein diffuse = keine Lichtaufnahme
-atmoMat.emissiveColor=new BABYLON.Color3(0.04,0.10,0.35);
-atmoMat.alpha=0.13; atmoMat.backFaceCulling=false;
-atmoMat.disableLighting=true;                         // rein emissiv, kein Lichteinfluss
+atmoMat.diffuseColor=new BABYLON.Color3(0,0,0);
+atmoMat.emissiveColor=new BABYLON.Color3(0.03,0.08,0.28);
+atmoMat.alpha=0.10;
+atmoMat.backFaceCulling=false;
+atmoMat.disableLighting=true;
 atmo.material=atmoMat;
-
-const atmoOuter=BABYLON.MeshBuilder.CreateSphere("atmoOuter",{diameter:525,segments:24},scene);
-atmoOuter.position.copyFrom(EARTH_POS); atmoOuter.isPickable=false;
-const atmoOuterMat=new BABYLON.StandardMaterial("atmoOuterMat",scene);
-atmoOuterMat.diffuseColor=new BABYLON.Color3(0,0,0);
-atmoOuterMat.emissiveColor=new BABYLON.Color3(0.02,0.05,0.18);
-atmoOuterMat.alpha=0.05; atmoOuterMat.backFaceCulling=false;
-atmoOuterMat.disableLighting=true;
-atmoOuter.material=atmoOuterMat;
 
 // ISS-Orbit-Linien um Erde
 function issOrbitRing(r,tilt,alpha){
@@ -595,16 +577,17 @@ const artMeshes={};
 function buildPlane(art){
   const pos=new BABYLON.Vector3(...art.pos);
 
-  // Weißer Rahmen
+  // Rahmen
   const frame=BABYLON.MeshBuilder.CreateBox(art.id+"_fr",{width:4.7,height:3.5,depth:0.10},scene);
-  frame.position.copyFrom(pos); frame.isPickable=false;
+  frame.position.copyFrom(pos);
   frame.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
+  frame.isPickable=false;
   const fmat=new BABYLON.StandardMaterial(art.id+"_fmat",scene);
   fmat.disableLighting=true;
-  fmat.emissiveColor=new BABYLON.Color3(0.92,0.92,0.92);
+  fmat.emissiveColor=new BABYLON.Color3(0.9,0.9,0.9);
   frame.material=fmat;
 
-  // Bild-Plane — immer zur Kamera, vollständig selbstleuchtend
+  // Bild-Plane
   const mesh=BABYLON.MeshBuilder.CreatePlane(art.id,{
     width:4.1, height:3.0,
     sideOrientation:BABYLON.Mesh.DOUBLESIDE
@@ -613,24 +596,33 @@ function buildPlane(art){
   mesh.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
 
   const pmat=new BABYLON.StandardMaterial(art.id+"_m",scene);
-  pmat.disableLighting=true;   // kein Lichteinfluss → Textur immer voll sichtbar
+  pmat.disableLighting=true;
   pmat.backFaceCulling=false;
+  pmat.diffuseColor=new BABYLON.Color3(0,0,0);
 
   if(art.image){
     const imgUrl=art.image.startsWith("http")?art.image:BASE_URL+art.image;
-    // emissiveTexture allein (kein diffuse) = Bild leuchtet selbst, volle Helligkeit
-    const tex=new BABYLON.Texture(imgUrl,scene,false,false,
-      BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
-      function(){ /* Erfolg */ },
-      function(){ /* Fehler: grauer Fallback */ pmat.emissiveColor=new BABYLON.Color3(0.5,0.5,0.52); }
+    // Textur laden — emissiveTexture = Bild leuchtet selbst, kein Lichteinfluss
+    const tex=new BABYLON.Texture(
+      imgUrl, scene,
+      false,  // noMipmap
+      true,   // invertY — wichtig für korrekte Orientierung
+      BABYLON.Texture.BILINEAR_SAMPLINGMODE,
+      ()=>{
+        // Erfolg: Textur sichtbar
+        pmat.emissiveTexture=tex;
+        pmat.emissiveColor=new BABYLON.Color3(1,1,1);
+      },
+      ()=>{
+        // Fehler (z.B. CORS lokal): grauer Placeholder mit Werktitel
+        pmat.emissiveColor=new BABYLON.Color3(0.35,0.36,0.38);
+        console.warn("Textur nicht geladen:",imgUrl);
+      }
     );
-    tex.hasAlpha=false;
-    pmat.emissiveTexture=tex;
-    pmat.emissiveColor=new BABYLON.Color3(1,1,1);  // weiß = Textur in Originalfarben
-    pmat.diffuseColor=new BABYLON.Color3(0,0,0);   // diffuse aus damit emissive dominant
   } else {
-    pmat.emissiveColor=new BABYLON.Color3(0.55,0.56,0.58);
+    pmat.emissiveColor=new BABYLON.Color3(0.35,0.36,0.38);
   }
+
   mesh.material=pmat;
   mesh.metadata={type:"artwork", data:art, frame};
   mesh.isPickable=true;
