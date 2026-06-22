@@ -96,6 +96,16 @@ canvas { width:100vw; height:100vh; display:block; touch-action:none; }
 <canvas id="renderCanvas"></canvas>
 <canvas id="portalCanvas"></canvas>
 
+<!-- DEBUG: Bild-Test — wird nach 5s automatisch ausgeblendet -->
+<div id="imgtest" style="position:fixed;top:10px;right:10px;z-index:999;background:rgba(0,0,0,0.8);padding:8px;font-family:monospace;font-size:10px;color:#fff;max-width:220px;">
+  <div style="margin-bottom:4px;opacity:0.5;">BILD-TEST (verschwindet nach 5s)</div>
+  <img id="imgtest-img" src="/space/img/flyinghammer.jpg" crossorigin="anonymous"
+    style="width:200px;height:auto;display:block;border:1px solid rgba(255,255,255,0.2);"
+    onload="this.nextSibling.textContent='✓ Bild geladen'"
+    onerror="this.nextSibling.textContent='✗ Bild FEHLER — URL falsch?'">
+  <div style="margin-top:4px;color:#0f0;">Lädt...</div>
+</div>
+<script>setTimeout(()=>{const t=document.getElementById('imgtest');if(t)t.remove();},5000);</script>
 <div id="loading">
   <h1>Schwerpunkt Gravitation</h1>
   <div id="loading-sub">Focus on Gravity — Virtuelle Ausstellung 2027</div>
@@ -551,40 +561,31 @@ function buildPlane(art){
 
   if(art.image){
     const imgUrl=art.image.startsWith("http")?art.image:BASE_URL+art.image;
-    // diffuseTexture + emissiveColor weiß + disableLighting:
-    // Babylon rendert: emissiveColor + (ambientColor * ambientTexture) + diffuseTexture*light
-    // Mit disableLighting=true wird NUR emissive gerendert.
-    // Trick: diffuseTexture als emissiveTexture setzen funktioniert nicht zuverlässig.
-    // Stattdessen: unlit material über ShaderMaterial simulieren mit StandardMaterial:
-    // diffuseColor=(0,0,0), emissiveTexture=tex, emissiveColor=(1,1,1)
-    // Das Problem bisher war Timing. Fix: texture direkt zuweisen, emissiveColor NACH tex.
     pmat.diffuseColor=new BABYLON.Color3(0,0,0);
     pmat.specularColor=new BABYLON.Color3(0,0,0);
-    const tex=new BABYLON.Texture(
-      imgUrl, scene,
-      false, // noMipmap=false: normale Mipmaps
-      true,  // invertY=true
-      BABYLON.Texture.TRILINEAR_SAMPLINGMODE
-    );
-    // Bild via HTML Image Element laden → DynamicTexture → kein XHR/CORS Problem
-    pmat.emissiveColor=new BABYLON.Color3(0.35,0.35,0.37); // grau bis geladen
-    pmat.diffuseColor=new BABYLON.Color3(0,0,0);
+    pmat.emissiveColor=new BABYLON.Color3(0.3,0.3,0.32); // grau bis Bild geladen
+    // HTML Image → DynamicTexture: umgeht Babylons XHR, kein CORS-Problem
     const htmlImg=new Image();
     htmlImg.crossOrigin="anonymous";
     htmlImg.onload=function(){
-      // DynamicTexture: Canvas-basiert, kein XHR, kein CORS-Problem
-      const dt=new BABYLON.DynamicTexture(art.id+"_dt",{width:htmlImg.naturalWidth||512,height:htmlImg.naturalHeight||512},scene,false);
+      const w=htmlImg.naturalWidth||1024;
+      const h=htmlImg.naturalHeight||768;
+      const dt=new BABYLON.DynamicTexture(art.id+"_dt",{width:w,height:h},scene,false);
       const ctx=dt.getContext();
-      ctx.drawImage(htmlImg,0,0,dt.getSize().width,dt.getSize().height);
-      dt.update();
+      // Canvas-Y-Achse ist invertiert — flip vertikal
+      ctx.save();
+      ctx.scale(1,-1);
+      ctx.drawImage(htmlImg,0,-h,w,h);
+      ctx.restore();
+      dt.update(false);
       pmat.emissiveTexture=dt;
       pmat.emissiveColor=new BABYLON.Color3(1,1,1);
     };
-    htmlImg.onerror=function(){ console.warn("Bild nicht geladen:",imgUrl); };
+    htmlImg.onerror=function(e){ console.warn("Bild nicht geladen:",imgUrl,e); };
     htmlImg.src=imgUrl;
   } else {
     pmat.diffuseColor=new BABYLON.Color3(0,0,0);
-    pmat.emissiveColor=new BABYLON.Color3(0.38,0.38,0.40);
+    pmat.emissiveColor=new BABYLON.Color3(0.3,0.3,0.32);
   }
 
   mesh.material=pmat;
